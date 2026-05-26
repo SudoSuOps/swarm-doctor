@@ -73,37 +73,36 @@
   "ready_for_eval_curator": false,
   "continuity_action": {
     "position_group": "customer_support",
-    "criticality_tier": "high",
+    "criticality_tier": "material",
     "starter": "support-01.helpdesk.defendable.eth",
     "human_owner": "support_manager",
     "triggered": true,
     "trigger_reason": "vitals: agent is dead",
     "starter_status": "INJURED_RESERVE",
-    "action": "ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY",
+    "outcome": "BACKUP_RESTRICTED_DUTY",
     "workflow_status": "COVERED_BY_BACKUP",
     "activated": "support-02.helpdesk.defendable.eth",
-    "backup_permissions": {
-      "may": [
-        "classify_tickets",
-        "draft_response",
-        "route_escalation",
-        "update_case_notes"
-      ],
-      "may_not_without_human_approval": [
-        "issue_refund",
-        "close_compliance_case",
-        "make_policy_exception"
-      ]
-    },
+    "activated_permissions": [
+      "classify_tickets",
+      "draft_response",
+      "route_escalation",
+      "update_case_notes"
+    ],
+    "requires_human_approval": [
+      "issue_refund",
+      "close_compliance_case",
+      "make_policy_exception"
+    ],
     "human_owner_notified": true,
-    "escalation_urgency": "page",
+    "escalation_urgency": "urgent_notification",
     "limitations": [
+      "activated play set (backup-approved only): classify_tickets, draft_response, route_escalation, update_case_notes",
       "human approval required: issue_refund",
       "human approval required: close_compliance_case",
       "human approval required: make_policy_exception",
-      "coverage by backup agent \u2014 restricted duty, not full starter authority"
+      "coverage by backup agent \u2014 restricted duty, never starter authority"
     ]
   },
-  "timestamp": "2026-05-26T12:48:28.657374+00:00",
-  "receipt_sha256": "9a5bc9c7fb8122f5dbbd7a438c79cedc8534d1967d423b1fe37c2e4354cbd4e9"
+  "timestamp": "2026-05-26T12:58:35.159876+00:00",
+  "receipt_sha256": "8e552c8fdb6c4067101e12da27344d2ab0a60d395cff8320df982632a1f4daf2"
 }

@@ -2,7 +2,7 @@
 # Doctrine: the position is never vacant. A TREATMENT_REQUIRED starter ALWAYS activates
 # coverage; criticality_tier only sets how loud we page.
 position_group: customer_support
-criticality_tier: high            # critical|high|medium|low → paging loudness
+criticality_tier: material            # critical | material | low_risk → paging loudness
 human_coach: support_manager
 human_failover_owner: support_manager
 conditioning_max_age_days: 36500  # staleness gate (large here = date never disqualifies in CI)

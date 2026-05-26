@@ -43,6 +43,6 @@
   "discharge_status": "DISCHARGE_TO_EVAL_CURATOR",
   "ready_for_eval_curator": true,
   "continuity_action": null,
-  "timestamp": "2026-05-26T12:48:28.582016+00:00",
-  "receipt_sha256": "279ce56c8b1684b2e585eed9f8c9715e02a39b17ac88a09a889659089eab9beb"
+  "timestamp": "2026-05-26T12:58:03.226981+00:00",
+  "receipt_sha256": "5deed79d58c96f7e910ffbb8d20172ceb7ece3cc81aebed8faa28cd6983bf07a"
 }

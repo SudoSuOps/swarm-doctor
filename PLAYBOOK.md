@@ -142,3 +142,32 @@ Handoff contract:
 
 The receipt is the baton. The Doctor stabilizes; the manager grades. Two jobs, one
 clean handoff.
+
+---
+
+## 9. Continuity — next man up (when a depth chart is supplied)
+
+Pair the flight sheet with a depth chart (`--depth-chart` or a sheet-level `depth_chart:`
+path). Validate it first: `python3 cli/swarm_doctor.py --validate-depth-chart <path>`.
+
+When the Doctor returns `TREATMENT_REQUIRED`, the starter comes off the field and a
+continuity event **always** opens (the position is never silently vacant). It resolves to
+exactly one outcome, written into the receipt's `continuity_action`:
+
+1. **`BACKUP_RESTRICTED_DUTY`** — an eligible pre-evaluated backup exists. Activate **only
+   its own approved reduced play set** (`permissions.may`); anything in
+   `may_not_without_human_approval` stays gated. Never the starter's authority. A backup
+   that is benched, stale on conditioning, or has no approved play set is **not eligible**.
+2. **`HUMAN_FAILOVER_SAFE_MODE`** — no eligible backup, but a human owner can cover **and**
+   the lane has `safe_mode_available: true`. Lane runs in safe mode only (draft / read-only
+   / queue-and-hold) under the human owner.
+3. **`OPERATIONS_SUSPENDED`** — fail-closed. No eligible backup **and** (no available human
+   owner **or** `safe_mode_available: false`). Halt the lane, block all actions, preserve
+   receipts, escalate. Better to stop the line than run it uncovered.
+
+**Paging urgency is set by `criticality_tier` only** — never whether the event opens:
+`critical → immediate_page`, `material → urgent_notification`,
+`low_risk → log_and_queue_owner_notice`.
+
+Continuity rides *alongside* the health verdict — it does not change the discharge or grade
+quality. Worked example: [`examples/continuity_next_man_up.md`](examples/continuity_next_man_up.md).

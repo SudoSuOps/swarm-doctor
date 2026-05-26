@@ -1,5 +1,5 @@
 # Position group whose only backup is benched (eligible: false) — a backup that isn't
-# tested is not a backup. A starter failure here falls through to HUMAN_FAILOVER_ONLY.
+# tested is not a backup. A starter failure here falls through to HUMAN_FAILOVER_SAFE_MODE.
 position_group: compliance_review
 criticality_tier: critical
 human_coach: compliance_officer

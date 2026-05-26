@@ -1,91 +1,96 @@
 # Example — Next Man Up (Roster & Continuity v0.1)
 
-**Doctrine (Mr D):** the position is never vacant. A `dead`/`crash_loop` starter — any
-`TREATMENT_REQUIRED` — **always** fires a continuity event, every tier, 24/7. That event
-**must resolve to exactly one of three actions:**
-
-1. **`ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY`** — a tested backup covers, on reduced permissions.
-2. **`ACTIVATE_HUMAN_FAILOVER_SAFE_MODE`** — no backup, but a human covers and the workflow has a safe degraded mode.
-3. **`SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL`** — *fail-closed*: nothing can safely cover, so the line stops.
-
-Criticality tier sets *how loud we page*, never *whether* we act.
+**Locked doctrine (Mr D):**
+1. A `dead`/`crash_loop` primary **always** triggers a continuity event.
+2. The position is **never silently vacant**.
+3. Continuity activation **never grants untested authority**.
+4. Eligible pre-evaluated backup → **`BACKUP_RESTRICTED_DUTY`** (activate only the backup's approved reduced play set).
+5. No eligible backup → **`HUMAN_FAILOVER_SAFE_MODE`** (only the lane's safe-mode behavior).
+6. Neither can proceed safely → **`OPERATIONS_SUSPENDED`** (preserve receipts + escalate).
+7. **Criticality controls paging urgency, not whether an event opens:**
+   - critical → `immediate_page`
+   - material → `urgent_notification`
+   - low_risk → `log_and_queue_owner_notice`
 
 ```
-                        starter TREATMENT_REQUIRED
-                                  │
-                     eligible tested backup?
+                        starter TREATMENT_REQUIRED  (dead / crash_loop)
+                                  │  event ALWAYS opens
+                     eligible pre-evaluated backup?
                         ┌─────────┴─────────┐
                        yes                  no
-                        │          human owner AND safe mode?
+                        │          human owner AND lane safe mode?
                         │            ┌────────┴────────┐
                         │           yes                no
                         ▼            ▼                  ▼
-                 ACTIVATE_      ACTIVATE_           SUSPEND_UNSAFE_
-                 ELIGIBLE_      HUMAN_FAILOVER_     WORKFLOW_PENDING_
-                 BACKUP_        SAFE_MODE           HUMAN_CONTROL
-                 RESTRICTED_DUTY
+                 BACKUP_         HUMAN_FAILOVER_     OPERATIONS_
+                 RESTRICTED_DUTY SAFE_MODE           SUSPENDED
 ```
 
-Run it by pairing a flight sheet with a depth chart:
+Run by pairing a flight sheet with a depth chart (validate it first):
 ```bash
+python3 cli/swarm_doctor.py --validate-depth-chart examples/depth_charts/customer_support.yaml
 python3 cli/swarm_doctor.py --flight-sheet examples/sheets/dead_with_backup.yaml \
   --depth-chart examples/depth_charts/customer_support.yaml
 ```
-(or declare `depth_chart: ../depth_charts/...` inside the sheet.)
 
 ---
 
-## Outcome 1 — eligible backup → `ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY`
+## Outcome 1 — support agent (the worked example) → `BACKUP_RESTRICTED_DUTY`
 
-`customer_support` (tier **high**): backup `support-02` is eligible.
+`customer_support` (tier **material**): starter `support-01` is dead; backup `support-02`
+is eligible (cleared, not stale, has an approved play set).
 
 ```
-  CONTINUITY : customer_support (tier high)  starter=INJURED_RESERVE
-    action   : ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY
+  CONTINUITY : customer_support (tier material)  starter=INJURED_RESERVE
+    outcome  : BACKUP_RESTRICTED_DUTY
     workflow : COVERED_BY_BACKUP
     activated: support-02.helpdesk.defendable.eth
-    escalate : page  →  owner support_manager (notified=True)
+    escalate : urgent_notification  →  owner support_manager (notified=True)
+    limit    : activated play set (backup-approved only): classify_tickets, draft_response, route_escalation, update_case_notes
     limit    : human approval required: issue_refund
-    limit    : coverage by backup agent — restricted duty, not full starter authority
+    limit    : coverage by backup agent — restricted duty, never starter authority
 ```
-Queue keeps moving; the backup can't move money/policy without a human.
 
-## Outcome 2 — no backup, human can cover safely → `ACTIVATE_HUMAN_FAILOVER_SAFE_MODE`
+Only `support-02`'s **own approved** play set is activated — it can classify, draft, and
+route, but **refunds/policy require a human**. No untested authority is ever granted.
+
+## Outcome 2 — no eligible backup, lane has a safe mode → `HUMAN_FAILOVER_SAFE_MODE`
 
 `compliance_review` (tier **critical**): the only backup is benched (`eligible: false`),
-but a human owner exists and the workflow *has* a safe mode (review/flag/draft only).
+but a human owner exists and the lane has a safe mode (review/flag/draft only).
 
 ```
   CONTINUITY : compliance_review (tier critical)  starter=INJURED_RESERVE
-    action   : ACTIVATE_HUMAN_FAILOVER_SAFE_MODE
+    outcome  : HUMAN_FAILOVER_SAFE_MODE
     workflow : COVERED_BY_HUMAN_SAFE_MODE
     activated: — none —
-    escalate : page_oncall  →  owner compliance_officer (notified=True)
-    limit    : no eligible backup — workflow runs in safe mode (draft / read-only / queue-and-hold)
+    escalate : immediate_page  →  owner compliance_officer (notified=True)
+    limit    : no eligible backup — lane runs in safe mode only (draft / read-only / queue-and-hold)
     limit    : human owner (compliance_officer) covers / authorizes until a backup is cleared
 ```
 
-## Outcome 3 — nothing can safely cover → `SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL`
+## Outcome 3 — nothing can safely cover → `OPERATIONS_SUSPENDED`
 
-`payments_execution` (tier **critical**): no eligible backup, and `safe_mode_available:
+`payments_execution` (tier **critical**): no eligible backup and `safe_mode_available:
 false` — "move money" has no draft/read-only version. **Fail-closed: stop the line.**
 
 ```
   CONTINUITY : payments_execution (tier critical)  starter=INJURED_RESERVE
-    action   : SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL
+    outcome  : OPERATIONS_SUSPENDED
     workflow : SUSPENDED
     activated: — none —
-    escalate : page_oncall  →  owner treasury_controller (notified=True)
-    limit    : WORKFLOW SUSPENDED — all agent actions blocked pending human control
-    limit    : reason: workflow has no safe degraded mode (actions are not reversible/holdable)
-    limit    : no work proceeds until a human assumes control or a backup is cleared
+    escalate : immediate_page  →  owner treasury_controller (notified=True)
+    limit    : OPERATIONS SUSPENDED — all agent actions blocked pending human control
+    limit    : reason: lane has no safe degraded mode (actions are not reversible / holdable)
+    limit    : receipts preserved; no work proceeds until a human assumes control or a backup is cleared
 ```
 
 ---
 
 ## What this proves
 
-- A continuity event **always resolves to exactly one of the three actions** — the set is exhaustive.
-- Outcome 3 is **fail-closed**: when in doubt, the workflow halts rather than running uncovered. Safer to stop a payment run than to limp it.
-- Tier drives **paging loudness** (`high→page`, `critical→page_oncall`); suspension floors urgency at `page`.
-- The whole action — including `workflow_status` and `limitations` — rides inside the sha256-stamped receipt under `continuity_action`. It never grades quality or overrides the Doctor's health verdict.
+- A continuity event **always resolves to exactly one of the three locked outcomes** — exhaustive.
+- **Never untested authority:** only the backup's own approved `permissions.may` is activated. A backup with no approved play set is ineligible (drops to human/suspend).
+- Outcome 3 is **fail-closed** and **preserves receipts** before escalating.
+- **Criticality drives only paging urgency** (`material→urgent_notification`, `critical→immediate_page`), never whether the event opens.
+- The whole action rides inside the sha256-stamped receipt under `continuity_action`. It never grades quality or overrides the Doctor's health verdict.

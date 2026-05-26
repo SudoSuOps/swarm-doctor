@@ -6,7 +6,7 @@
   "required": ["position_group", "roster"],
   "properties": {
     "position_group": { "type": "string" },
-    "criticality_tier": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+    "criticality_tier": { "type": "string", "enum": ["critical", "material", "low_risk"] },
     "human_coach": { "type": "string" },
     "human_failover_owner": { "type": "string" },
     "human_failover_available": { "type": "boolean", "description": "Can the human owner actually cover? Defaults true when an owner is set." },

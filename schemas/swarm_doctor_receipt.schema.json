@@ -117,18 +117,18 @@
         "triggered": { "type": "boolean" },
         "trigger_reason": { "type": ["string", "null"] },
         "position_group": { "type": "string" },
-        "criticality_tier": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+        "criticality_tier": { "type": "string", "enum": ["critical", "material", "low_risk"] },
         "starter": { "type": "string" },
         "starter_status": { "type": "string", "enum": ["ACTIVE", "OBSERVE", "INJURED_RESERVE"] },
-        "action": {
+        "outcome": {
           "type": "string",
-          "description": "A continuity event resolves to exactly one of the three ACT_* actions.",
+          "description": "A continuity event resolves to exactly one of the three locked outcomes.",
           "enum": [
-            "NO_EVENT",
+            "NO_CONTINUITY_EVENT",
             "MONITOR",
-            "ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY",
-            "ACTIVATE_HUMAN_FAILOVER_SAFE_MODE",
-            "SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL"
+            "BACKUP_RESTRICTED_DUTY",
+            "HUMAN_FAILOVER_SAFE_MODE",
+            "OPERATIONS_SUSPENDED"
           ]
         },
         "workflow_status": {
@@ -136,12 +136,17 @@
           "enum": ["NORMAL", "DEGRADED_MONITORED", "COVERED_BY_BACKUP", "COVERED_BY_HUMAN_SAFE_MODE", "SUSPENDED"]
         },
         "activated": { "type": ["string", "null"] },
-        "backup_permissions": { "type": "object" },
+        "activated_permissions": {
+          "type": "array", "items": { "type": "string" },
+          "description": "Only the activated backup's APPROVED reduced play set — never starter authority."
+        },
+        "requires_human_approval": { "type": "array", "items": { "type": "string" } },
+        "receipts_preserved": { "type": "boolean" },
         "human_owner": { "type": ["string", "null"] },
         "human_owner_notified": { "type": "boolean" },
         "escalation_urgency": {
           "type": "string",
-          "enum": ["none", "log", "notify", "page", "page_oncall"]
+          "enum": ["none", "log_and_queue_owner_notice", "urgent_notification", "immediate_page"]
         },
         "limitations": { "type": "array", "items": { "type": "string" } }
       }

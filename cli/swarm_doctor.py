@@ -93,19 +93,20 @@ ENS_RE = re.compile(r"^[a-z0-9][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+\.eth$", re.IGNO
 # --- roster & continuity -----------------------------------------------------
 # Doctrine: the position is never vacant. A dead/crash_loop (any TREATMENT_REQUIRED)
 # starter ALWAYS triggers activation, every tier, 24/7. Tier only sets paging loudness.
-CRITICALITY_URGENCY = {"critical": "page_oncall", "high": "page", "medium": "notify", "low": "log"}
 BACKUP_PRIORITY = ["backup", "second_string", "specialist", "rotational"]
 DEFAULT_CONDITIONING_MAX_AGE_DAYS = 30  # a backup that isn't recently tested is not a backup
 
-# A continuity event MUST resolve to exactly one of these three actions.
-ACT_BACKUP = "ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY"
-ACT_HUMAN = "ACTIVATE_HUMAN_FAILOVER_SAFE_MODE"
-ACT_SUSPEND = "SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL"
-URGENCY_ORDER = ["none", "log", "notify", "page", "page_oncall"]
+# Locked doctrine (Mr D): a continuity event MUST resolve to exactly one of these three.
+OUT_BACKUP = "BACKUP_RESTRICTED_DUTY"
+OUT_HUMAN = "HUMAN_FAILOVER_SAFE_MODE"
+OUT_SUSPEND = "OPERATIONS_SUSPENDED"
 
-
-def _max_urgency(a, b):
-    return a if URGENCY_ORDER.index(a) >= URGENCY_ORDER.index(b) else b
+# Criticality controls paging URGENCY only — never whether an event is opened.
+TIER_URGENCY = {
+    "critical": "immediate_page",
+    "material": "urgent_notification",
+    "low_risk": "log_and_queue_owner_notice",
+}
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -438,11 +439,64 @@ def load_depth_chart(path):
     return dc
 
 
+def validate_depth_chart(path):
+    """Structural + semantic validator for a depth chart. Prints errors/warnings and
+    returns an exit code. Enforces the doctrine: exactly one starter; backups must carry
+    an approved play set (no untested authority); flags benched/stale/safe-mode gaps."""
+    valid_tiers = set(TIER_URGENCY)
+    valid_roles = {"starter", "backup", "second_string", "specialist", "rotational"}
+    errors, warns = [], []
+    try:
+        dc = load_depth_chart(path)
+    except SystemExit as e:
+        print(f"  [ERROR] {e}")
+        return 1
+
+    tier = dc.get("criticality_tier")
+    if tier and tier not in valid_tiers:
+        errors.append(f"criticality_tier '{tier}' not in {sorted(valid_tiers)}")
+    roster = dc.get("roster", [])
+    starters = [m for m in roster if m.get("depth_chart") == "starter"]
+    if len(starters) != 1:
+        errors.append(f"expected exactly 1 starter, found {len(starters)}")
+    max_age = dc.get("conditioning_max_age_days", DEFAULT_CONDITIONING_MAX_AGE_DAYS)
+    eligible_backups = 0
+    for m in roster:
+        role = m.get("depth_chart")
+        if role not in valid_roles:
+            errors.append(f"{m.get('agent_id')}: invalid depth_chart role '{role}'")
+        if not m.get("agent_id"):
+            errors.append("a roster member is missing agent_id")
+        if role and role != "starter":
+            if not (m.get("permissions", {}) or {}).get("may"):
+                warns.append(f"{m.get('agent_id')}: no approved play set (permissions.may) — INELIGIBLE (untested authority)")
+            elif _backup_eligible(m, max_age):
+                eligible_backups += 1
+            else:
+                warns.append(f"{m.get('agent_id')}: benched or stale — not an eligible backup")
+    has_human = bool(dc.get("human_failover_owner") or dc.get("human_coach"))
+    safe = dc.get("safe_mode_available", True)
+    if eligible_backups == 0 and not (has_human and safe):
+        warns.append("no eligible backup AND no safe human coverage → a starter failure here will OPERATIONS_SUSPENDED")
+
+    for e in errors:
+        print(f"  [ERROR] {e}")
+    for w in warns:
+        print(f"  [warn ] {w}")
+    ok = not errors
+    print(f"VALIDATE {os.path.basename(path)}: {'OK' if ok else 'INVALID'}  "
+          f"(eligible backups: {eligible_backups})")
+    return 0 if ok else 1
+
+
 def _backup_eligible(member, max_age_days):
-    """A backup is eligible only if not explicitly benched and not stale on conditioning.
-    Doctrine: a backup that isn't recently tested is not a backup."""
+    """A backup is eligible only if it is (a) not benched, (b) not stale on conditioning, and
+    (c) has an APPROVED reduced-permission play set. Doctrine: never grant untested authority —
+    a backup with no approved `permissions.may` cannot be activated."""
     if member.get("eligible") is False:
         return False
+    if not (member.get("permissions", {}) or {}).get("may"):
+        return False  # no approved play set -> activating it would be untested authority
     lkg = member.get("last_conditioning")
     if lkg and max_age_days:
         try:
@@ -465,18 +519,22 @@ def pick_backup(dc):
 
 
 def build_continuity_action(receipt, dc):
-    """Next-man-up. Position is never vacant. A TREATMENT_REQUIRED starter ALWAYS produces a
-    continuity event, and that event MUST resolve to exactly one of three actions:
-        1. ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY
-        2. ACTIVATE_HUMAN_FAILOVER_SAFE_MODE
-        3. SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL   (fail-closed)
-    Tier sets paging loudness, not whether we act."""
+    """Next-man-up (locked doctrine).
+      1. A dead/crash_loop (any TREATMENT_REQUIRED) starter ALWAYS opens a continuity event.
+      2. The position is never silently vacant.
+      3. Activation never grants untested authority — only a backup's own approved play set.
+      The event resolves to exactly one outcome:
+        - BACKUP_RESTRICTED_DUTY    (eligible pre-evaluated backup; its reduced play set only)
+        - HUMAN_FAILOVER_SAFE_MODE  (no backup; lane-defined safe-mode behavior only)
+        - OPERATIONS_SUSPENDED      (neither can proceed safely; preserve receipts + escalate)
+      Criticality controls paging urgency, never whether an event is opened."""
     discharge = receipt["discharge_status"]
     group = dc["position_group"]
-    tier = dc.get("criticality_tier", "medium")
+    tier = dc.get("criticality_tier", "material")
+    urgency = TIER_URGENCY.get(tier, "urgent_notification")
     human_owner = dc.get("human_failover_owner") or dc.get("human_coach")
     human_available = dc.get("human_failover_available", bool(human_owner))
-    safe_mode = dc.get("safe_mode_available", True)  # can the workflow run in a reduced safe mode?
+    safe_mode = dc.get("safe_mode_available", True)  # can the lane run in a reduced safe mode?
     starter = next((m["agent_id"] for m in dc.get("roster", []) if m.get("depth_chart") == "starter"),
                    receipt["agent_id"])
 
@@ -485,50 +543,55 @@ def build_continuity_action(receipt, dc):
 
     if discharge == "DISCHARGE_TO_EVAL_CURATOR":
         return {**base, "triggered": False, "trigger_reason": None, "starter_status": "ACTIVE",
-                "action": "NO_EVENT", "workflow_status": "NORMAL", "activated": None,
+                "outcome": "NO_CONTINUITY_EVENT", "workflow_status": "NORMAL", "activated": None,
+                "activated_permissions": [], "requires_human_approval": [],
                 "human_owner_notified": False, "escalation_urgency": "none", "limitations": []}
 
     if discharge == "OBSERVE":
         return {**base, "triggered": False, "trigger_reason": "degraded — watch under load",
-                "starter_status": "OBSERVE", "action": "MONITOR", "workflow_status": "DEGRADED_MONITORED",
-                "activated": None, "human_owner_notified": tier in ("critical", "high"),
-                "escalation_urgency": "notify" if tier in ("critical", "high") else "log",
+                "starter_status": "OBSERVE", "outcome": "MONITOR", "workflow_status": "DEGRADED_MONITORED",
+                "activated": None, "activated_permissions": [], "requires_human_approval": [],
+                "human_owner_notified": tier == "critical",
+                "escalation_urgency": "urgent_notification" if tier == "critical" else "log_and_queue_owner_notice",
                 "limitations": ["starter remains on the field; monitor before promoting"]}
 
-    # --- continuity event: starter comes off the field, ALWAYS. Resolve to one of three. ---
+    # --- continuity event opened: starter comes off the field, ALWAYS. Resolve to one outcome. ---
     reason = receipt["hard_faults"][0] if receipt.get("hard_faults") else "treatment required"
-    urgency = CRITICALITY_URGENCY.get(tier, "notify")
     backup = pick_backup(dc)
 
-    if backup:  # (1) eligible tested backup covers, on restricted duty
+    if backup:  # BACKUP_RESTRICTED_DUTY — activate ONLY the backup's approved reduced play set
         perms = backup.get("permissions", {}) or {}
+        may = perms.get("may", []) or []
         gated = perms.get("may_not_without_human_approval", []) or []
-        limits = [f"human approval required: {a}" for a in gated]
-        limits.append(f"coverage by {backup.get('depth_chart')} agent — restricted duty, not full starter authority")
+        limits = [f"activated play set (backup-approved only): {', '.join(may)}"]
+        limits += [f"human approval required: {a}" for a in gated]
+        limits.append(f"coverage by {backup.get('depth_chart')} agent — restricted duty, never starter authority")
         return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
-                "action": ACT_BACKUP, "workflow_status": "COVERED_BY_BACKUP", "activated": backup["agent_id"],
-                "backup_permissions": perms, "human_owner_notified": True,
-                "escalation_urgency": urgency, "limitations": limits}
+                "outcome": OUT_BACKUP, "workflow_status": "COVERED_BY_BACKUP", "activated": backup["agent_id"],
+                "activated_permissions": may, "requires_human_approval": gated,
+                "human_owner_notified": True, "escalation_urgency": urgency, "limitations": limits}
 
-    if human_owner and human_available and safe_mode:  # (2) human covers in safe degraded mode
+    if human_owner and human_available and safe_mode:  # HUMAN_FAILOVER_SAFE_MODE — lane safe-mode only
         return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
-                "action": ACT_HUMAN, "workflow_status": "COVERED_BY_HUMAN_SAFE_MODE", "activated": None,
+                "outcome": OUT_HUMAN, "workflow_status": "COVERED_BY_HUMAN_SAFE_MODE", "activated": None,
+                "activated_permissions": [], "requires_human_approval": ["all lane actions"],
                 "human_owner_notified": True, "escalation_urgency": urgency,
-                "limitations": ["no eligible backup — workflow runs in safe mode (draft / read-only / queue-and-hold)",
+                "limitations": ["no eligible backup — lane runs in safe mode only (draft / read-only / queue-and-hold)",
                                 f"human owner ({human_owner}) covers / authorizes until a backup is cleared"]}
 
-    # (3) fail-closed: nothing can safely cover. Stop the line.
+    # OPERATIONS_SUSPENDED — fail-closed: neither backup nor safe human coverage can proceed.
     why = []
     if not (human_owner and human_available):
         why.append("no available human failover owner")
     if not safe_mode:
-        why.append("workflow has no safe degraded mode (actions are not reversible/holdable)")
+        why.append("lane has no safe degraded mode (actions are not reversible / holdable)")
     return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
-            "action": ACT_SUSPEND, "workflow_status": "SUSPENDED", "activated": None,
-            "human_owner_notified": True, "escalation_urgency": _max_urgency(urgency, "page"),
-            "limitations": ["WORKFLOW SUSPENDED — all agent actions blocked pending human control",
+            "outcome": OUT_SUSPEND, "workflow_status": "SUSPENDED", "activated": None,
+            "activated_permissions": [], "requires_human_approval": ["all lane actions (suspended)"],
+            "human_owner_notified": True, "escalation_urgency": urgency, "receipts_preserved": True,
+            "limitations": ["OPERATIONS SUSPENDED — all agent actions blocked pending human control",
                             "reason: " + "; ".join(why),
-                            "no work proceeds until a human assumes control or a backup is cleared"]}
+                            "receipts preserved; no work proceeds until a human assumes control or a backup is cleared"]}
 
 
 # ----------------------------------------------------------------------------- main visit
@@ -621,7 +684,7 @@ def resolve_depth_chart(sheet, sheet_path, explicit=None):
 def selftest(examples_dir):
     """Run every *.yaml in examples_dir and assert expected discharge from its filename
     convention or an embedded `expect:` key. If a sheet declares `depth_chart:` and
-    `expect_coverage:`, the continuity coverage_mode is asserted too. Returns exit code."""
+    `expect_outcome:`, the continuity outcome is asserted too. Returns exit code."""
     expect_map = {
         "healthy": "DISCHARGE_TO_EVAL_CURATOR",
         "dead": "TREATMENT_REQUIRED", "crash": "TREATMENT_REQUIRED",
@@ -645,12 +708,12 @@ def selftest(examples_dir):
         got = r["discharge_status"]
         passed = (expected is None) or (got == expected)
         extra = ""
-        exp_act = sheet.get("expect_action")
-        if exp_act:
-            got_act = (r.get("continuity_action") or {}).get("action")
-            act_ok = got_act == exp_act
-            passed = passed and act_ok
-            extra = f"  action={got_act} (expect {exp_act})"
+        exp_out = sheet.get("expect_outcome")
+        if exp_out:
+            got_out = (r.get("continuity_action") or {}).get("outcome")
+            out_ok = got_out == exp_out
+            passed = passed and out_ok
+            extra = f"  outcome={got_out} (expect {exp_out})"
         ok = ok and passed
         flag = "ok " if passed else "FAIL"
         print(f"  [{flag}] {name:24s} got={got:26s} expect={expected}{extra}")
@@ -693,14 +756,14 @@ def print_summary(r, out_path):
         print(line)
         print(f"  CONTINUITY : {ca['position_group']} (tier {ca['criticality_tier']})  starter={ca['starter_status']}")
         if ca["triggered"]:
-            print(f"    action   : {ca['action']}")
+            print(f"    outcome  : {ca['outcome']}")
             print(f"    workflow : {ca['workflow_status']}")
             print(f"    activated: {ca['activated'] or '— none —'}")
             print(f"    escalate : {ca['escalation_urgency']}  →  owner {ca['human_owner']} (notified={ca['human_owner_notified']})")
             for lim in ca["limitations"]:
                 print(f"    limit    : {lim}")
         else:
-            print(f"    action   : {ca['action']} (workflow {ca['workflow_status']})")
+            print(f"    outcome  : {ca['outcome']} (workflow {ca['workflow_status']})")
     print(line)
     print(f"  DISCHARGE  : {r['discharge_status']}   ready_for_eval_curator={r['ready_for_eval_curator']}")
     print(f"  sha256     : {r['receipt_sha256']}")
@@ -714,10 +777,13 @@ def main():
     ap.add_argument("--out", help="path to write the JSON receipt")
     ap.add_argument("--probe", help="run one real vitals probe: 'systemctl:<unit>' or 'docker:<name>'")
     ap.add_argument("--depth-chart", help="path to a depth_chart.yaml for next-man-up continuity")
+    ap.add_argument("--validate-depth-chart", metavar="PATH", help="validate a depth chart and exit")
     ap.add_argument("--selftest", metavar="DIR", help="run every .yaml sheet in DIR and assert discharge")
     ap.add_argument("--quiet", action="store_true", help="suppress the human summary")
     args = ap.parse_args()
 
+    if args.validate_depth_chart:
+        sys.exit(validate_depth_chart(args.validate_depth_chart))
     if args.selftest:
         sys.exit(selftest(args.selftest))
     if not args.flight_sheet:

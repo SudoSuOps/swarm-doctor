@@ -79,6 +79,21 @@ chart is tamper-evident. Agents may be identified by **ENS** (`agent01.client.de
 Swarm-Doctor reads a local flight sheet and runs local probes (`systemctl` / `docker`)
 only. No network calls, no cloud, no telemetry. **Source data never leaves the office.**
 
+## Roster & continuity — next man up (locked)
+
+A `dead`/`crash_loop` (any `TREATMENT_REQUIRED`) starter **always** opens a continuity
+event. The position is **never silently vacant**, and activation **never grants untested
+authority**. With a depth chart, the event resolves to exactly one outcome:
+
+- **`BACKUP_RESTRICTED_DUTY`** — eligible pre-evaluated backup covers, using only its own approved reduced play set.
+- **`HUMAN_FAILOVER_SAFE_MODE`** — no backup, but a human covers and the lane has a safe mode.
+- **`OPERATIONS_SUSPENDED`** — fail-closed: nothing can safely cover → halt, preserve receipts, escalate.
+
+Criticality controls paging urgency only (`critical→immediate_page`,
+`material→urgent_notification`, `low_risk→log_and_queue_owner_notice`) — never whether the
+event opens. Continuity rides *alongside* the Doctor's verdict; it never grades quality.
+See [`PLAYBOOK.md`](PLAYBOOK.md) §9 and [`examples/continuity_next_man_up.md`](examples/continuity_next_man_up.md).
+
 ## Where this fits in DefendableOS
 
 Flight sheets, playbooks, referee review, receipts, eval-curator — Swarm-Doctor slots
