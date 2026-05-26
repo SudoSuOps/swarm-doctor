@@ -162,3 +162,6 @@ Each receipt's `receipt_sha256` recomputed over the receipt minus that field
 ---
 
 **Brick closed.** Conditioning Coach not started, per instruction.
+## SHA-256 integrity scope (Codex Tribunal F4)
+
+SHA-256 hashes in this prototype establish content-integrity linkage only. They do not independently prove authorship, owner approval, trusted timestamping, immutability, blockchain anchoring, external attestation, certification, insurance coverage, or external platform enforcement.

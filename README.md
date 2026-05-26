@@ -149,3 +149,6 @@ DefendableOS is built as a chain of single-purpose modules:
 - **Permission Broker** — locally enforces broker-routed action permissions against mock support tools only. <https://github.com/SudoSuOps/permission-broker>
 
 **Validation status:** Builder-produced public prototype. Independent Tribunal code audit and cross-module behavioral validation are pending. No production deployment, external SaaS restriction, live permission revocation, blockchain/ENS implementation, insurance coverage, or certification is claimed.
+## SHA-256 integrity scope (Codex Tribunal F4)
+
+SHA-256 hashes in this prototype establish content-integrity linkage only. They do not independently prove authorship, owner approval, trusted timestamping, immutability, blockchain anchoring, external attestation, certification, insurance coverage, or external platform enforcement.
