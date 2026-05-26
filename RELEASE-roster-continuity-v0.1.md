@@ -3,7 +3,7 @@
 **Status:** CLOSED — owner verdict PASS; suspension paging doctrine corrected to `PAGE_REQUIRED`.
 **Date:** 2026-05-26
 **Repo:** `git@github.com:SudoSuOps/swarm-doctor.git`
-**Release-content commit:** `RELEASE_CONTENT_COMMIT_PLACEHOLDER`
+**Release-content commit:** `a3c570644b5af18ede05e1ad1f355822715edbca`
 
 Roster & Continuity bolts onto Swarm-Doctor: when the Doctor returns `TREATMENT_REQUIRED`,
 the position is never silently vacant — a continuity event opens and resolves to exactly
