@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.1",
+  "offline_mode": true,
+  "offline_note": "Local triage only. Source data never leaves the office.",
+  "agent_id": "support-01.helpdesk.defendable.eth",
+  "agent_ens": "support-01.helpdesk.defendable.eth",
+  "agent_name": "Support Starter",
+  "host": "defendableos-baremetal-02",
+  "symptom": "service down",
+  "vitals_status": "dead",
+  "vitals_probe": null,
+  "pulse_status": "flatline",
+  "bloodwork_findings": [],
+  "neuro_findings": [],
+  "recent_changes": [
+    "deploy 08:05"
+  ],
+  "last_known_good": null,
+  "metrics": {
+    "heartbeat_success_rate": 0.0,
+    "error_rate": 1.0,
+    "successful_probe_count": 0,
+    "consecutive_failures": 5,
+    "latency_ms": 0.0,
+    "gpu_memory_used_pct": 0.0,
+    "context_tokens_pct": 0.0,
+    "stability_score": 34.0
+  },
+  "findings": [
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "vitals: agent is dead"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: consecutive_failures 5 > max 2"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: successful_probe_count 0 < min 3"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: heartbeat_success_rate 0.00 < min 0.95"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "bloodwork: error_rate 1.00 > max 0.05"
+    }
+  ],
+  "hard_faults": [
+    "vitals: agent is dead",
+    "pulse: consecutive_failures 5 > max 2",
+    "pulse: successful_probe_count 0 < min 3",
+    "pulse: heartbeat_success_rate 0.00 < min 0.95",
+    "bloodwork: error_rate 1.00 > max 0.05"
+  ],
+  "soft_warnings": [],
+  "root_cause_category": "infra",
+  "diagnosis": "Hard fault present: vitals: agent is dead",
+  "diagnosis_confidence": 0.9,
+  "treatment_plan": [
+    "Restart the service and confirm it stays up."
+  ],
+  "time_to_recovery_minutes": 10,
+  "human_required": false,
+  "discharge_status": "TREATMENT_REQUIRED",
+  "ready_for_eval_curator": false,
+  "continuity_action": {
+    "position_group": "customer_support",
+    "criticality_tier": "high",
+    "starter": "support-01.helpdesk.defendable.eth",
+    "human_owner": "support_manager",
+    "triggered": true,
+    "trigger_reason": "vitals: agent is dead",
+    "starter_status": "INJURED_RESERVE",
+    "coverage_mode": "BACKUP_RESTRICTED_DUTY",
+    "activated": "support-02.helpdesk.defendable.eth",
+    "backup_permissions": {
+      "may": [
+        "classify_tickets",
+        "draft_response",
+        "route_escalation",
+        "update_case_notes"
+      ],
+      "may_not_without_human_approval": [
+        "issue_refund",
+        "close_compliance_case",
+        "make_policy_exception"
+      ]
+    },
+    "human_owner_notified": true,
+    "escalation_urgency": "page",
+    "limitations": [
+      "human approval required: issue_refund",
+      "human approval required: close_compliance_case",
+      "human approval required: make_policy_exception",
+      "coverage by backup agent \u2014 restricted duty, not full starter authority"
+    ]
+  },
+  "timestamp": "2026-05-26T12:42:27.319720+00:00",
+  "receipt_sha256": "946841adf58b9d7624bd4f558e78720a9d3e2d58c8211e2cb91a7c3195dff15b"
+}

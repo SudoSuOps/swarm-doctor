@@ -2,9 +2,10 @@
 __pycache__/
 *.pyc
 
-# Generated triage receipts — keep only the canonical example
+# Generated triage receipts — keep only the canonical examples
 receipts/*.json
 !receipts/example_receipt.json
+!receipts/example_continuity_receipt.json
 
 # Editor / OS noise
 .DS_Store

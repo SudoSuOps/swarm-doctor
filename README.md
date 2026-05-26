@@ -38,7 +38,10 @@ python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --out receipts/visi
 python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --probe docker:my-agent
 python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --probe systemctl:my-agent.service
 
-# CLI check: run every example sheet and assert the expected discharge decision
+# Roster & continuity: a removed starter activates next-man-up (backup or human failover)
+python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --depth-chart examples/depth_charts/customer_support.yaml
+
+# CLI check: run every example sheet and assert the expected discharge decision (+ coverage)
 python3 cli/swarm_doctor.py --selftest examples/sheets
 ```
 
@@ -66,18 +69,37 @@ skills/swarm-doctor/
   flight_sheet.yaml              ← machine-readable thresholds + observations
   triage_checklist.md            ← human paper checklist
   cli/
-    swarm_doctor.py              ← referee runner (health math → receipt → decision)
+    swarm_doctor.py              ← referee runner (health math → receipt → decision → continuity)
   schemas/
     swarm_doctor_receipt.schema.json
+    depth_chart.schema.json      ← roster / next-man-up schema
   receipts/
     example_receipt.json         ← a discharge-ready receipt
+    example_continuity_receipt.json  ← a receipt with a continuity action
+  doctrine/
+    LOU-ai-workforce-operating-model.md  ← the franchise operating model (LOU)
   examples/
     dead_process.md  crash_loop.md  hung_agent.md
     garbage_outputs.md  model_config_mismatch.md
+    continuity_next_man_up.md    ← roster continuity worked example
     sheets/                      ← runnable flight sheets behind the examples + selftest
+    depth_charts/                ← runnable depth charts (roster definitions)
   .github/workflows/
     swarm-doctor-check.yml       ← CI: runs the selftest over examples/sheets
 ```
+
+## Roster & Continuity (v0.1)
+
+The position is never vacant. Pair a flight sheet with a **depth chart** and a removed
+starter (`TREATMENT_REQUIRED`) always activates **next-man-up** — written into the receipt
+as `continuity_action`:
+
+- eligible tested backup → **`BACKUP_RESTRICTED_DUTY`** (reduced permissions, human-approval gates)
+- no eligible backup → **`HUMAN_FAILOVER_ONLY`** (workflow drops to safe mode, human covers)
+- criticality tier sets paging loudness (`low→log … critical→page_oncall`), not *whether* we act
+
+See [`examples/continuity_next_man_up.md`](examples/continuity_next_man_up.md) and
+[`doctrine/LOU-ai-workforce-operating-model.md`](doctrine/LOU-ai-workforce-operating-model.md).
 
 ## What the receipt tells the operator (v1.1)
 

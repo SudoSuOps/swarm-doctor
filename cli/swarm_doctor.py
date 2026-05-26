@@ -13,8 +13,11 @@ Usage:
     python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --probe docker:swarmcore-postgres
     python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --probe systemctl:chrony.service
 
-    # Self-test: run every example sheet and assert the expected discharge code.
-    python3 cli/swarm_doctor.py --selftest examples_check
+    # Roster & continuity: pair with a depth chart so a removed starter activates next-man-up.
+    python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --depth-chart depth_chart.yaml
+
+    # Self-test: run every example sheet and assert the expected discharge (+ coverage).
+    python3 cli/swarm_doctor.py --selftest examples/sheets
 
 The flight sheet is machine-readable instructions: thresholds, stability weights, and the
 `observations` block for this visit. The runner computes health math, classifies findings
@@ -86,6 +89,13 @@ TTR_BY_CATEGORY = {
 }
 
 ENS_RE = re.compile(r"^[a-z0-9][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)+\.eth$", re.IGNORECASE)
+
+# --- roster & continuity -----------------------------------------------------
+# Doctrine: the position is never vacant. A dead/crash_loop (any TREATMENT_REQUIRED)
+# starter ALWAYS triggers activation, every tier, 24/7. Tier only sets paging loudness.
+CRITICALITY_URGENCY = {"critical": "page_oncall", "high": "page", "medium": "notify", "low": "log"}
+BACKUP_PRIORITY = ["backup", "second_string", "specialist", "rotational"]
+DEFAULT_CONDITIONING_MAX_AGE_DAYS = 30  # a backup that isn't recently tested is not a backup
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -408,8 +418,89 @@ def sha256_receipt(receipt):
     return hashlib.sha256(blob).hexdigest()
 
 
+# ----------------------------------------------------------------------------- roster & continuity
+def load_depth_chart(path):
+    with open(path, "r") as fh:
+        dc = yaml.safe_load(fh)
+    for key in ("position_group", "roster"):
+        if key not in dc:
+            sys.exit(f"depth chart missing required block: '{key}'")
+    return dc
+
+
+def _backup_eligible(member, max_age_days):
+    """A backup is eligible only if not explicitly benched and not stale on conditioning.
+    Doctrine: a backup that isn't recently tested is not a backup."""
+    if member.get("eligible") is False:
+        return False
+    lkg = member.get("last_conditioning")
+    if lkg and max_age_days:
+        try:
+            d = datetime.date.fromisoformat(str(lkg)[:10])
+            if (datetime.date.today() - d).days > int(max_age_days):
+                return False
+        except ValueError:
+            pass
+    return True
+
+
+def pick_backup(dc):
+    """Choose the highest-priority eligible non-starter to cover the position."""
+    max_age = dc.get("conditioning_max_age_days", DEFAULT_CONDITIONING_MAX_AGE_DAYS)
+    candidates = [m for m in dc.get("roster", []) if m.get("depth_chart") != "starter"]
+    eligible = [m for m in candidates if _backup_eligible(m, max_age)]
+    eligible.sort(key=lambda m: BACKUP_PRIORITY.index(m["depth_chart"])
+                  if m.get("depth_chart") in BACKUP_PRIORITY else 99)
+    return eligible[0] if eligible else None
+
+
+def build_continuity_action(receipt, dc):
+    """Next-man-up. Position is never vacant; tier sets paging loudness, not whether we act."""
+    discharge = receipt["discharge_status"]
+    group = dc["position_group"]
+    tier = dc.get("criticality_tier", "medium")
+    human_owner = dc.get("human_failover_owner") or dc.get("human_coach")
+    starter = next((m["agent_id"] for m in dc.get("roster", []) if m.get("depth_chart") == "starter"),
+                   receipt["agent_id"])
+
+    base = {"position_group": group, "criticality_tier": tier, "starter": starter,
+            "human_owner": human_owner}
+
+    if discharge == "DISCHARGE_TO_EVAL_CURATOR":
+        return {**base, "triggered": False, "trigger_reason": None, "starter_status": "ACTIVE",
+                "coverage_mode": "NORMAL", "activated": None, "human_owner_notified": False,
+                "escalation_urgency": "none", "limitations": []}
+
+    if discharge == "OBSERVE":
+        return {**base, "triggered": False, "trigger_reason": "degraded — watch under load",
+                "starter_status": "OBSERVE", "coverage_mode": "NORMAL_DEGRADED", "activated": None,
+                "human_owner_notified": tier in ("critical", "high"),
+                "escalation_urgency": "notify" if tier in ("critical", "high") else "log",
+                "limitations": ["starter remains on the field; monitor before promoting"]}
+
+    # TREATMENT_REQUIRED — starter comes off the field, ALWAYS. Position must stay covered.
+    reason = receipt["hard_faults"][0] if receipt.get("hard_faults") else "treatment required"
+    urgency = CRITICALITY_URGENCY.get(tier, "notify")
+    backup = pick_backup(dc)
+    if backup:
+        perms = backup.get("permissions", {}) or {}
+        gated = perms.get("may_not_without_human_approval", []) or []
+        limits = [f"human approval required: {a}" for a in gated]
+        limits.append(f"coverage by {backup.get('depth_chart')} agent — restricted duty, not full starter authority")
+        return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
+                "coverage_mode": "BACKUP_RESTRICTED_DUTY", "activated": backup["agent_id"],
+                "backup_permissions": perms, "human_owner_notified": True,
+                "escalation_urgency": urgency, "limitations": limits}
+
+    return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
+            "coverage_mode": "HUMAN_FAILOVER_ONLY", "activated": None, "human_owner_notified": True,
+            "escalation_urgency": urgency,
+            "limitations": ["no eligible tested backup — workflow drops to safe mode (draft / read-only / queue-and-hold)",
+                            f"human owner ({human_owner}) must cover or authorize until a backup is cleared"]}
+
+
 # ----------------------------------------------------------------------------- main visit
-def run_visit(sheet, probe_spec=None):
+def run_visit(sheet, probe_spec=None, depth_chart=None):
     agent = sheet["agent"]
     thr = sheet["thresholds"]
     weights = sheet["weights"]
@@ -474,15 +565,31 @@ def run_visit(sheet, probe_spec=None):
         "human_required": human,
         "discharge_status": discharge,
         "ready_for_eval_curator": ready,
+        "continuity_action": None,  # filled below when a depth chart is supplied
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
+    if depth_chart:
+        receipt["continuity_action"] = build_continuity_action(receipt, depth_chart)
     receipt["receipt_sha256"] = sha256_receipt(receipt)
     return receipt
 
 
+def resolve_depth_chart(sheet, sheet_path, explicit=None):
+    """Explicit --depth-chart wins; otherwise a sheet-level `depth_chart:` path (relative
+    to the sheet) is loaded. Returns the depth chart dict or None."""
+    if explicit:
+        return load_depth_chart(explicit)
+    rel = sheet.get("depth_chart")
+    if rel:
+        base = os.path.dirname(os.path.abspath(sheet_path))
+        return load_depth_chart(os.path.join(base, rel))
+    return None
+
+
 def selftest(examples_dir):
     """Run every *.yaml in examples_dir and assert expected discharge from its filename
-    convention or an embedded `expect:` key. Returns process exit code."""
+    convention or an embedded `expect:` key. If a sheet declares `depth_chart:` and
+    `expect_coverage:`, the continuity coverage_mode is asserted too. Returns exit code."""
     expect_map = {
         "healthy": "DISCHARGE_TO_EVAL_CURATOR",
         "dead": "TREATMENT_REQUIRED", "crash": "TREATMENT_REQUIRED",
@@ -495,16 +602,26 @@ def selftest(examples_dir):
         return 1
     ok = True
     for name in sheets:
-        sheet = load_flight_sheet(os.path.join(examples_dir, name))
+        path = os.path.join(examples_dir, name)
+        sheet = load_flight_sheet(path)
         expected = sheet.get("expect")
         if not expected:
             key = next((k for k in expect_map if k in name), None)
             expected = expect_map.get(key)
-        got = run_visit(sheet)["discharge_status"]
+        dc = resolve_depth_chart(sheet, path)
+        r = run_visit(sheet, depth_chart=dc)
+        got = r["discharge_status"]
         passed = (expected is None) or (got == expected)
+        extra = ""
+        exp_cov = sheet.get("expect_coverage")
+        if exp_cov:
+            got_cov = (r.get("continuity_action") or {}).get("coverage_mode")
+            cov_ok = got_cov == exp_cov
+            passed = passed and cov_ok
+            extra = f"  coverage={got_cov} (expect {exp_cov})"
         ok = ok and passed
         flag = "ok " if passed else "FAIL"
-        print(f"  [{flag}] {name:28s} got={got:26s} expect={expected}")
+        print(f"  [{flag}] {name:24s} got={got:26s} expect={expected}{extra}")
     print("SELFTEST:", "PASS" if ok else "FAIL")
     return 0 if ok else 1
 
@@ -539,6 +656,18 @@ def print_summary(r, out_path):
     for t in r["treatment_plan"]:
         print(f"    - {t}")
     print(f"  ETR        : ~{r['time_to_recovery_minutes']} min   human_required={r['human_required']}")
+    ca = r.get("continuity_action")
+    if ca:
+        print(line)
+        print(f"  CONTINUITY : {ca['position_group']} (tier {ca['criticality_tier']})  starter={ca['starter_status']}")
+        if ca["triggered"]:
+            print(f"    coverage : {ca['coverage_mode']}")
+            print(f"    activated: {ca['activated'] or '— none — HUMAN FAILOVER'}")
+            print(f"    escalate : {ca['escalation_urgency']}  →  owner {ca['human_owner']} (notified={ca['human_owner_notified']})")
+            for lim in ca["limitations"]:
+                print(f"    limit    : {lim}")
+        else:
+            print(f"    coverage : {ca['coverage_mode']} (no activation)")
     print(line)
     print(f"  DISCHARGE  : {r['discharge_status']}   ready_for_eval_curator={r['ready_for_eval_curator']}")
     print(f"  sha256     : {r['receipt_sha256']}")
@@ -551,6 +680,7 @@ def main():
     ap.add_argument("--flight-sheet", help="path to flight_sheet.yaml")
     ap.add_argument("--out", help="path to write the JSON receipt")
     ap.add_argument("--probe", help="run one real vitals probe: 'systemctl:<unit>' or 'docker:<name>'")
+    ap.add_argument("--depth-chart", help="path to a depth_chart.yaml for next-man-up continuity")
     ap.add_argument("--selftest", metavar="DIR", help="run every .yaml sheet in DIR and assert discharge")
     ap.add_argument("--quiet", action="store_true", help="suppress the human summary")
     args = ap.parse_args()
@@ -561,7 +691,8 @@ def main():
         ap.error("--flight-sheet is required (or use --selftest DIR)")
 
     sheet = load_flight_sheet(args.flight_sheet)
-    receipt = run_visit(sheet, probe_spec=args.probe)
+    depth_chart = resolve_depth_chart(sheet, args.flight_sheet, args.depth_chart)
+    receipt = run_visit(sheet, probe_spec=args.probe, depth_chart=depth_chart)
 
     out_path = args.out
     if not out_path:

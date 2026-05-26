@@ -26,6 +26,10 @@ agent:
 mode:
   offline: true   # source data never leaves the office
 
+# Optional: point at a depth chart to enable next-man-up continuity. When set (or passed
+# via --depth-chart), a TREATMENT_REQUIRED starter activates a backup or human failover.
+# depth_chart: examples/depth_charts/customer_support.yaml
+
 # --- Pass/fail standards -----------------------------------------------------
 thresholds:
   max_latency_ms: 8000            # slowest acceptable response latency

@@ -110,6 +110,31 @@
       "enum": ["TREATMENT_REQUIRED", "OBSERVE", "DISCHARGE_TO_EVAL_CURATOR"]
     },
     "ready_for_eval_curator": { "type": "boolean" },
+    "continuity_action": {
+      "type": ["object", "null"],
+      "description": "Next-man-up roster action. Null unless a depth chart was supplied.",
+      "properties": {
+        "triggered": { "type": "boolean" },
+        "trigger_reason": { "type": ["string", "null"] },
+        "position_group": { "type": "string" },
+        "criticality_tier": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+        "starter": { "type": "string" },
+        "starter_status": { "type": "string", "enum": ["ACTIVE", "OBSERVE", "INJURED_RESERVE"] },
+        "coverage_mode": {
+          "type": "string",
+          "enum": ["NORMAL", "NORMAL_DEGRADED", "BACKUP_RESTRICTED_DUTY", "HUMAN_FAILOVER_ONLY"]
+        },
+        "activated": { "type": ["string", "null"] },
+        "backup_permissions": { "type": "object" },
+        "human_owner": { "type": ["string", "null"] },
+        "human_owner_notified": { "type": "boolean" },
+        "escalation_urgency": {
+          "type": "string",
+          "enum": ["none", "log", "notify", "page", "page_oncall"]
+        },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
     "timestamp": { "type": "string", "format": "date-time" },
     "receipt_sha256": { "type": "string", "description": "sha256 over the receipt minus this field." }
   }

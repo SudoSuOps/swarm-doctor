@@ -1,0 +1,36 @@
+# Depth chart for a position group. Drives next-man-up continuity.
+# Doctrine: the position is never vacant. A TREATMENT_REQUIRED starter ALWAYS activates
+# coverage; criticality_tier only sets how loud we page.
+position_group: customer_support
+criticality_tier: high            # critical|high|medium|low → paging loudness
+human_coach: support_manager
+human_failover_owner: support_manager
+conditioning_max_age_days: 36500  # staleness gate (large here = date never disqualifies in CI)
+
+roster:
+  - agent_id: support-01.helpdesk.defendable.eth
+    depth_chart: starter
+    last_conditioning: "2026-05-20"
+    strengths: [complex_policy_reasoning, complaint_resolution, escalation_drafting]
+    permissions:
+      may: [classify_tickets, draft_response, route_escalation, update_case_notes, recommend_refund]
+      may_not_without_human_approval: [issue_refund_over_250, close_compliance_case, make_policy_exception]
+
+  - agent_id: support-02.helpdesk.defendable.eth
+    depth_chart: backup
+    eligible: true
+    last_conditioning: "2026-05-18"
+    strengths: [ticket_classification, fast_routing, conversation_summary]
+    # Restricted duty: the backup drafts, but a human approves anything that moves money/policy.
+    permissions:
+      may: [classify_tickets, draft_response, route_escalation, update_case_notes]
+      may_not_without_human_approval: [issue_refund, close_compliance_case, make_policy_exception]
+
+  - agent_id: support-03.helpdesk.defendable.eth
+    depth_chart: specialist
+    eligible: true
+    last_conditioning: "2026-05-10"
+    strengths: [return_policy_lookup, refund_recommendation]
+    permissions:
+      may: [classify_tickets, draft_response, recommend_refund]
+      may_not_without_human_approval: [issue_refund, make_policy_exception]

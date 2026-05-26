@@ -1,0 +1,23 @@
+# Position group whose only backup is benched (eligible: false) — a backup that isn't
+# tested is not a backup. A starter failure here falls through to HUMAN_FAILOVER_ONLY.
+position_group: compliance_review
+criticality_tier: critical
+human_coach: compliance_officer
+human_failover_owner: compliance_officer
+conditioning_max_age_days: 36500
+
+roster:
+  - agent_id: compliance-01.client.defendable.eth
+    depth_chart: starter
+    last_conditioning: "2026-05-22"
+    permissions:
+      may: [review_document, flag_risk, draft_finding]
+      may_not_without_human_approval: [close_compliance_case, sign_off_filing]
+
+  - agent_id: compliance-02.client.defendable.eth
+    depth_chart: backup
+    eligible: false                # benched: failed last conditioning / not cleared
+    last_conditioning: "2026-02-01"
+    permissions:
+      may: [review_document, flag_risk]
+      may_not_without_human_approval: [close_compliance_case, sign_off_filing]
