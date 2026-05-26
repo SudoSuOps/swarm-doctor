@@ -1,0 +1,22 @@
+# A high-risk executor whose actions are not reversible/holdable: there is NO safe
+# degraded mode. With no eligible backup, a starter failure must SUSPEND, not limp along.
+position_group: payments_execution
+criticality_tier: critical
+human_coach: treasury_controller
+human_failover_owner: treasury_controller
+safe_mode_available: false        # no draft/read-only version of "move money"
+conditioning_max_age_days: 36500
+roster:
+  - agent_id: payments-01.client.defendable.eth
+    depth_chart: starter
+    last_conditioning: "2026-05-23"
+    permissions:
+      may: [execute_payment, reconcile_ledger]
+      may_not_without_human_approval: []
+  - agent_id: payments-02.client.defendable.eth
+    depth_chart: backup
+    eligible: false               # not cleared -> not a backup
+    last_conditioning: "2026-01-15"
+    permissions:
+      may: [execute_payment]
+      may_not_without_human_approval: []

@@ -9,6 +9,8 @@
     "criticality_tier": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
     "human_coach": { "type": "string" },
     "human_failover_owner": { "type": "string" },
+    "human_failover_available": { "type": "boolean", "description": "Can the human owner actually cover? Defaults true when an owner is set." },
+    "safe_mode_available": { "type": "boolean", "description": "Can the workflow run in a reduced safe mode (draft/read-only/queue-and-hold)? If false, a starter failure with no backup SUSPENDS." },
     "conditioning_max_age_days": { "type": "integer", "minimum": 0 },
     "roster": {
       "type": "array",

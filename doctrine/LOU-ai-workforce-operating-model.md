@@ -119,6 +119,18 @@ plays:
 performance advantage · workload/fatigue equivalent · drift warning · incident/failure ·
 restricted duty.
 
+### 5.4a Every continuity event resolves to exactly one of three actions
+
+A `dead`/`crash_loop` (any `TREATMENT_REQUIRED`) starter **always** fires a continuity
+event, and that event **must** resolve to exactly one of:
+
+1. **`ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY`** — a tested, eligible backup covers, on reduced permissions.
+2. **`ACTIVATE_HUMAN_FAILOVER_SAFE_MODE`** — no backup, but a human owner can cover **and** the workflow has a safe degraded mode (draft / read-only / queue-and-hold).
+3. **`SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL`** — *fail-closed*. No safe coverage exists (no safe mode, or no available human owner) → halt the workflow, block all actions, page loud. Better to stop a payment run than to limp it uncovered.
+
+This set is exhaustive and is enforced in code + CI (`examples/sheets/dead_with_backup`,
+`dead_no_backup`, `dead_suspend`). Tier sets paging loudness, never whether we act.
+
 ### 5.5 Continuity mode = REDUCED permissions (the highest-value safety piece)
 ```yaml
 failure_protocol:

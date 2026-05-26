@@ -120,9 +120,20 @@
         "criticality_tier": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
         "starter": { "type": "string" },
         "starter_status": { "type": "string", "enum": ["ACTIVE", "OBSERVE", "INJURED_RESERVE"] },
-        "coverage_mode": {
+        "action": {
           "type": "string",
-          "enum": ["NORMAL", "NORMAL_DEGRADED", "BACKUP_RESTRICTED_DUTY", "HUMAN_FAILOVER_ONLY"]
+          "description": "A continuity event resolves to exactly one of the three ACT_* actions.",
+          "enum": [
+            "NO_EVENT",
+            "MONITOR",
+            "ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY",
+            "ACTIVATE_HUMAN_FAILOVER_SAFE_MODE",
+            "SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL"
+          ]
+        },
+        "workflow_status": {
+          "type": "string",
+          "enum": ["NORMAL", "DEGRADED_MONITORED", "COVERED_BY_BACKUP", "COVERED_BY_HUMAN_SAFE_MODE", "SUSPENDED"]
         },
         "activated": { "type": ["string", "null"] },
         "backup_permissions": { "type": "object" },

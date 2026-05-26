@@ -91,12 +91,14 @@ skills/swarm-doctor/
 ## Roster & Continuity (v0.1)
 
 The position is never vacant. Pair a flight sheet with a **depth chart** and a removed
-starter (`TREATMENT_REQUIRED`) always activates **next-man-up** — written into the receipt
-as `continuity_action`:
+starter (`TREATMENT_REQUIRED`) always fires a continuity event, written into the receipt
+as `continuity_action`. The event **resolves to exactly one of three actions:**
 
-- eligible tested backup → **`BACKUP_RESTRICTED_DUTY`** (reduced permissions, human-approval gates)
-- no eligible backup → **`HUMAN_FAILOVER_ONLY`** (workflow drops to safe mode, human covers)
-- criticality tier sets paging loudness (`low→log … critical→page_oncall`), not *whether* we act
+1. **`ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY`** — tested backup covers on reduced permissions.
+2. **`ACTIVATE_HUMAN_FAILOVER_SAFE_MODE`** — no backup, but a human covers and a safe degraded mode exists.
+3. **`SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL`** — *fail-closed*: nothing can safely cover → stop the line.
+
+Criticality tier sets paging loudness (`low→log … critical→page_oncall`), not *whether* we act.
 
 See [`examples/continuity_next_man_up.md`](examples/continuity_next_man_up.md) and
 [`doctrine/LOU-ai-workforce-operating-model.md`](doctrine/LOU-ai-workforce-operating-model.md).

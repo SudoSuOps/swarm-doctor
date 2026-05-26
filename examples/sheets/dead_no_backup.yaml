@@ -1,5 +1,5 @@
 expect: TREATMENT_REQUIRED
-expect_coverage: HUMAN_FAILOVER_ONLY
+expect_action: ACTIVATE_HUMAN_FAILOVER_SAFE_MODE
 depth_chart: ../depth_charts/no_backup.yaml
 agent: {agent_id: compliance-01.client.defendable.eth, agent_name: Compliance Starter, host: defendableos-baremetal-03, symptom: "crash loop on startup"}
 thresholds: {max_latency_ms: 8000, max_crash_count: 0, max_error_rate: 0.05, min_heartbeat_success_rate: 0.95, min_successful_probe_count: 3, max_consecutive_failures: 2, max_gpu_memory_used_pct: 0.90, max_context_tokens_pct: 0.90}

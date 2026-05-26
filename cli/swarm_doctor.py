@@ -97,6 +97,16 @@ CRITICALITY_URGENCY = {"critical": "page_oncall", "high": "page", "medium": "not
 BACKUP_PRIORITY = ["backup", "second_string", "specialist", "rotational"]
 DEFAULT_CONDITIONING_MAX_AGE_DAYS = 30  # a backup that isn't recently tested is not a backup
 
+# A continuity event MUST resolve to exactly one of these three actions.
+ACT_BACKUP = "ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY"
+ACT_HUMAN = "ACTIVATE_HUMAN_FAILOVER_SAFE_MODE"
+ACT_SUSPEND = "SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL"
+URGENCY_ORDER = ["none", "log", "notify", "page", "page_oncall"]
+
+
+def _max_urgency(a, b):
+    return a if URGENCY_ORDER.index(a) >= URGENCY_ORDER.index(b) else b
+
 
 # ----------------------------------------------------------------------------- helpers
 def load_flight_sheet(path):
@@ -455,11 +465,18 @@ def pick_backup(dc):
 
 
 def build_continuity_action(receipt, dc):
-    """Next-man-up. Position is never vacant; tier sets paging loudness, not whether we act."""
+    """Next-man-up. Position is never vacant. A TREATMENT_REQUIRED starter ALWAYS produces a
+    continuity event, and that event MUST resolve to exactly one of three actions:
+        1. ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY
+        2. ACTIVATE_HUMAN_FAILOVER_SAFE_MODE
+        3. SUSPEND_UNSAFE_WORKFLOW_PENDING_HUMAN_CONTROL   (fail-closed)
+    Tier sets paging loudness, not whether we act."""
     discharge = receipt["discharge_status"]
     group = dc["position_group"]
     tier = dc.get("criticality_tier", "medium")
     human_owner = dc.get("human_failover_owner") or dc.get("human_coach")
+    human_available = dc.get("human_failover_available", bool(human_owner))
+    safe_mode = dc.get("safe_mode_available", True)  # can the workflow run in a reduced safe mode?
     starter = next((m["agent_id"] for m in dc.get("roster", []) if m.get("depth_chart") == "starter"),
                    receipt["agent_id"])
 
@@ -468,35 +485,50 @@ def build_continuity_action(receipt, dc):
 
     if discharge == "DISCHARGE_TO_EVAL_CURATOR":
         return {**base, "triggered": False, "trigger_reason": None, "starter_status": "ACTIVE",
-                "coverage_mode": "NORMAL", "activated": None, "human_owner_notified": False,
-                "escalation_urgency": "none", "limitations": []}
+                "action": "NO_EVENT", "workflow_status": "NORMAL", "activated": None,
+                "human_owner_notified": False, "escalation_urgency": "none", "limitations": []}
 
     if discharge == "OBSERVE":
         return {**base, "triggered": False, "trigger_reason": "degraded — watch under load",
-                "starter_status": "OBSERVE", "coverage_mode": "NORMAL_DEGRADED", "activated": None,
-                "human_owner_notified": tier in ("critical", "high"),
+                "starter_status": "OBSERVE", "action": "MONITOR", "workflow_status": "DEGRADED_MONITORED",
+                "activated": None, "human_owner_notified": tier in ("critical", "high"),
                 "escalation_urgency": "notify" if tier in ("critical", "high") else "log",
                 "limitations": ["starter remains on the field; monitor before promoting"]}
 
-    # TREATMENT_REQUIRED — starter comes off the field, ALWAYS. Position must stay covered.
+    # --- continuity event: starter comes off the field, ALWAYS. Resolve to one of three. ---
     reason = receipt["hard_faults"][0] if receipt.get("hard_faults") else "treatment required"
     urgency = CRITICALITY_URGENCY.get(tier, "notify")
     backup = pick_backup(dc)
-    if backup:
+
+    if backup:  # (1) eligible tested backup covers, on restricted duty
         perms = backup.get("permissions", {}) or {}
         gated = perms.get("may_not_without_human_approval", []) or []
         limits = [f"human approval required: {a}" for a in gated]
         limits.append(f"coverage by {backup.get('depth_chart')} agent — restricted duty, not full starter authority")
         return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
-                "coverage_mode": "BACKUP_RESTRICTED_DUTY", "activated": backup["agent_id"],
+                "action": ACT_BACKUP, "workflow_status": "COVERED_BY_BACKUP", "activated": backup["agent_id"],
                 "backup_permissions": perms, "human_owner_notified": True,
                 "escalation_urgency": urgency, "limitations": limits}
 
+    if human_owner and human_available and safe_mode:  # (2) human covers in safe degraded mode
+        return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
+                "action": ACT_HUMAN, "workflow_status": "COVERED_BY_HUMAN_SAFE_MODE", "activated": None,
+                "human_owner_notified": True, "escalation_urgency": urgency,
+                "limitations": ["no eligible backup — workflow runs in safe mode (draft / read-only / queue-and-hold)",
+                                f"human owner ({human_owner}) covers / authorizes until a backup is cleared"]}
+
+    # (3) fail-closed: nothing can safely cover. Stop the line.
+    why = []
+    if not (human_owner and human_available):
+        why.append("no available human failover owner")
+    if not safe_mode:
+        why.append("workflow has no safe degraded mode (actions are not reversible/holdable)")
     return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
-            "coverage_mode": "HUMAN_FAILOVER_ONLY", "activated": None, "human_owner_notified": True,
-            "escalation_urgency": urgency,
-            "limitations": ["no eligible tested backup — workflow drops to safe mode (draft / read-only / queue-and-hold)",
-                            f"human owner ({human_owner}) must cover or authorize until a backup is cleared"]}
+            "action": ACT_SUSPEND, "workflow_status": "SUSPENDED", "activated": None,
+            "human_owner_notified": True, "escalation_urgency": _max_urgency(urgency, "page"),
+            "limitations": ["WORKFLOW SUSPENDED — all agent actions blocked pending human control",
+                            "reason: " + "; ".join(why),
+                            "no work proceeds until a human assumes control or a backup is cleared"]}
 
 
 # ----------------------------------------------------------------------------- main visit
@@ -613,12 +645,12 @@ def selftest(examples_dir):
         got = r["discharge_status"]
         passed = (expected is None) or (got == expected)
         extra = ""
-        exp_cov = sheet.get("expect_coverage")
-        if exp_cov:
-            got_cov = (r.get("continuity_action") or {}).get("coverage_mode")
-            cov_ok = got_cov == exp_cov
-            passed = passed and cov_ok
-            extra = f"  coverage={got_cov} (expect {exp_cov})"
+        exp_act = sheet.get("expect_action")
+        if exp_act:
+            got_act = (r.get("continuity_action") or {}).get("action")
+            act_ok = got_act == exp_act
+            passed = passed and act_ok
+            extra = f"  action={got_act} (expect {exp_act})"
         ok = ok and passed
         flag = "ok " if passed else "FAIL"
         print(f"  [{flag}] {name:24s} got={got:26s} expect={expected}{extra}")
@@ -661,13 +693,14 @@ def print_summary(r, out_path):
         print(line)
         print(f"  CONTINUITY : {ca['position_group']} (tier {ca['criticality_tier']})  starter={ca['starter_status']}")
         if ca["triggered"]:
-            print(f"    coverage : {ca['coverage_mode']}")
-            print(f"    activated: {ca['activated'] or '— none — HUMAN FAILOVER'}")
+            print(f"    action   : {ca['action']}")
+            print(f"    workflow : {ca['workflow_status']}")
+            print(f"    activated: {ca['activated'] or '— none —'}")
             print(f"    escalate : {ca['escalation_urgency']}  →  owner {ca['human_owner']} (notified={ca['human_owner_notified']})")
             for lim in ca["limitations"]:
                 print(f"    limit    : {lim}")
         else:
-            print(f"    coverage : {ca['coverage_mode']} (no activation)")
+            print(f"    action   : {ca['action']} (workflow {ca['workflow_status']})")
     print(line)
     print(f"  DISCHARGE  : {r['discharge_status']}   ready_for_eval_curator={r['ready_for_eval_curator']}")
     print(f"  sha256     : {r['receipt_sha256']}")

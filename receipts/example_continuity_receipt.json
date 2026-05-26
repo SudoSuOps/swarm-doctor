@@ -79,7 +79,8 @@
     "triggered": true,
     "trigger_reason": "vitals: agent is dead",
     "starter_status": "INJURED_RESERVE",
-    "coverage_mode": "BACKUP_RESTRICTED_DUTY",
+    "action": "ACTIVATE_ELIGIBLE_BACKUP_RESTRICTED_DUTY",
+    "workflow_status": "COVERED_BY_BACKUP",
     "activated": "support-02.helpdesk.defendable.eth",
     "backup_permissions": {
       "may": [
@@ -103,6 +104,6 @@
       "coverage by backup agent \u2014 restricted duty, not full starter authority"
     ]
   },
-  "timestamp": "2026-05-26T12:42:27.319720+00:00",
-  "receipt_sha256": "946841adf58b9d7624bd4f558e78720a9d3e2d58c8211e2cb91a7c3195dff15b"
+  "timestamp": "2026-05-26T12:48:28.657374+00:00",
+  "receipt_sha256": "9a5bc9c7fb8122f5dbbd7a438c79cedc8534d1967d423b1fe37c2e4354cbd4e9"
 }
