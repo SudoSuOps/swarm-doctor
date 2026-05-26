@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "agent_id": "ao-helpdesk-01",
+  "agent_name": "AO Help-Desk Support Agent",
+  "host": "defendableos-baremetal-02",
+  "symptom": "stopped replying to tickets around 08:10",
+  "vitals_status": "alive",
+  "pulse_status": "ok",
+  "bloodwork_findings": [],
+  "neuro_findings": [],
+  "recent_changes": [],
+  "metrics": {
+    "heartbeat_success_rate": 1.0,
+    "error_rate": 0.0,
+    "successful_probe_count": 5,
+    "consecutive_failures": 0,
+    "latency_ms": 1400.0,
+    "gpu_memory_used_pct": 0.6666666666666666,
+    "context_tokens_pct": 0.390625,
+    "stability_score": 100.0
+  },
+  "hard_faults": [],
+  "soft_warnings": [],
+  "diagnosis": "Agent healthy across vitals, pulse, bloodwork, and neuro. Stable.",
+  "treatment_plan": [
+    "No treatment needed. Stable."
+  ],
+  "discharge_status": "DISCHARGE_TO_EVAL_CURATOR",
+  "ready_for_eval_curator": true,
+  "timestamp": "2026-05-26T11:40:22.422297+00:00"
+}

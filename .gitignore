@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+
+# Generated triage receipts — keep only the canonical example
+receipts/*.json
+!receipts/example_receipt.json
+
+# Editor / OS noise
+.DS_Store
+*.swp

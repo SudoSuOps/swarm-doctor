@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SwarmDoctorReceipt",
+  "description": "Triage chart emitted by cli/swarm_doctor.py. The baton handed to eval-curator.",
+  "type": "object",
+  "required": [
+    "agent_id",
+    "agent_name",
+    "host",
+    "symptom",
+    "vitals_status",
+    "pulse_status",
+    "bloodwork_findings",
+    "neuro_findings",
+    "recent_changes",
+    "diagnosis",
+    "treatment_plan",
+    "discharge_status",
+    "ready_for_eval_curator",
+    "timestamp"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "agent_id": { "type": "string" },
+    "agent_name": { "type": "string" },
+    "host": { "type": "string" },
+    "symptom": { "type": "string" },
+    "vitals_status": {
+      "type": "string",
+      "enum": ["alive", "dead", "crash_loop", "hung", "unreachable"]
+    },
+    "pulse_status": {
+      "type": "string",
+      "enum": ["ok", "degraded", "flatline"]
+    },
+    "bloodwork_findings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "neuro_findings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "recent_changes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Computed health math. Informational; thresholds drive the decision.",
+      "properties": {
+        "heartbeat_success_rate": { "type": "number" },
+        "error_rate": { "type": "number" },
+        "successful_probe_count": { "type": "integer" },
+        "consecutive_failures": { "type": "integer" },
+        "latency_ms": { "type": "number" },
+        "gpu_memory_used_pct": { "type": "number" },
+        "context_tokens_pct": { "type": "number" },
+        "stability_score": { "type": "number" }
+      }
+    },
+    "hard_faults": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "soft_warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "diagnosis": { "type": "string" },
+    "treatment_plan": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "discharge_status": {
+      "type": "string",
+      "enum": ["TREATMENT_REQUIRED", "OBSERVE", "DISCHARGE_TO_EVAL_CURATOR"]
+    },
+    "ready_for_eval_curator": { "type": "boolean" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  }
+}
