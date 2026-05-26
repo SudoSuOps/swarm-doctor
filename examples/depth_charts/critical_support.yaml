@@ -1,0 +1,18 @@
+# Critical production lane with an eligible tested backup. A starter failure covers via
+# BACKUP_RESTRICTED_DUTY and pages at immediate_page per ordinary critical-tier policy.
+position_group: critical_support
+criticality_tier: critical
+environment: production
+human_coach: ops_lead
+human_failover_owner: ops_lead
+conditioning_max_age_days: 36500
+roster:
+  - agent_id: csup-01.client.defendable.eth
+    depth_chart: starter
+    last_conditioning: "2026-05-24"
+    permissions: {may: [classify_tickets, draft_response, resolve_case], may_not_without_human_approval: [issue_refund]}
+  - agent_id: csup-02.client.defendable.eth
+    depth_chart: backup
+    eligible: true
+    last_conditioning: "2026-05-22"
+    permissions: {may: [classify_tickets, draft_response], may_not_without_human_approval: [issue_refund, resolve_case]}

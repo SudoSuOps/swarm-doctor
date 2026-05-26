@@ -169,13 +169,21 @@ exactly one outcome, written into the receipt's `continuity_action`:
 `critical → immediate_page`, `material → urgent_notification`,
 `low_risk → log_and_queue_owner_notice`.
 
-**Suspension paging floor (owner ruling).** A **production** lane that hits
-`OPERATIONS_SUSPENDED` pages at minimum `urgent_notification`, regardless of tier — a
-suspended production position is always worth a page. **Exemption:** lanes explicitly tagged
-non-production (`environment: sandbox|test|non_production|dev|staging`, or
-`non_production: true`) may log instead. Proven in CI by `dead_suspend_prod_lowrisk`
-(low_risk prod → `urgent_notification`) and `dead_suspend_sandbox` (low_risk sandbox →
-`log_and_queue_owner_notice`).
+**Suspension paging — `PAGE_REQUIRED` (owner doctrine).** A **production** lane that hits
+`OPERATIONS_SUSPENDED` sets `escalation_urgency = PAGE_REQUIRED` — an explicit active human
+page, regardless of tier. A suspended production position is always worth a page.
+**Exemption:** lanes explicitly tagged non-production
+(`environment: sandbox|test|non_production|dev|staging`, or `non_production: true`) follow
+ordinary tier policy. Covered events keep ordinary tier policy: `BACKUP_RESTRICTED_DUTY`
+and `HUMAN_FAILOVER_SAFE_MODE` follow `criticality_tier` (the latter unless the depth chart
+sets `human_failover_page_required: true`). Proven in CI:
+
+| case | tier | env | outcome | urgency |
+|---|---|---|---|---|
+| `dead_suspend_prod_lowrisk` | low_risk | production | OPERATIONS_SUSPENDED | **PAGE_REQUIRED** |
+| `dead_suspend_sandbox` | low_risk | sandbox | OPERATIONS_SUSPENDED | log_and_queue_owner_notice |
+| `dead_with_backup` | material | production | BACKUP_RESTRICTED_DUTY | urgent_notification |
+| `dead_critical_backup` | critical | production | BACKUP_RESTRICTED_DUTY | immediate_page |
 
 **Health observation ≠ continuity action.** A `MONITOR` outcome comes from an `OBSERVE`
 health verdict and is **not** a continuity action — `triggered: false`, no substitution.

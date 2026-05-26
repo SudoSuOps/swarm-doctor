@@ -79,21 +79,29 @@ false` — "move money" has no draft/read-only version. **Fail-closed: stop the 
     outcome  : OPERATIONS_SUSPENDED
     workflow : SUSPENDED
     activated: — none —
-    escalate : immediate_page  →  owner treasury_controller (notified=True)
+    escalate : PAGE_REQUIRED  →  owner treasury_controller (notified=True)
     limit    : OPERATIONS SUSPENDED — all agent actions blocked pending human control
     limit    : reason: lane has no safe degraded mode (actions are not reversible / holdable)
+    limit    : PRODUCTION suspension — active human page REQUIRED (owner doctrine), regardless of role tier
     limit    : receipts preserved; no work proceeds until a human assumes control or a backup is cleared
 ```
 
-### Suspension paging floor + sandbox exemption
+### Suspension paging — `PAGE_REQUIRED` + sandbox exemption
 
-`OPERATIONS_SUSPENDED` on a **production** lane pages at minimum `urgent_notification`
-regardless of tier (owner ruling). A lane tagged non-production may log instead:
+`OPERATIONS_SUSPENDED` on a **production** lane sets `escalation_urgency = PAGE_REQUIRED`
+(explicit active human page) regardless of tier (owner doctrine). Non-production lanes
+follow ordinary tier policy. Covered events keep ordinary tier policy:
 
 ```
-dead_suspend_prod_lowrisk  (low_risk, environment: production) → urgency urgent_notification   (floored)
-dead_suspend_sandbox       (low_risk, environment: sandbox)    → urgency log_and_queue_owner_notice  (exempt)
+dead_suspend_prod_lowrisk  (low_risk, production)  OPERATIONS_SUSPENDED   → PAGE_REQUIRED
+dead_suspend_sandbox       (low_risk, sandbox)     OPERATIONS_SUSPENDED   → log_and_queue_owner_notice
+dead_with_backup           (material, production)  BACKUP_RESTRICTED_DUTY → urgent_notification
+dead_critical_backup       (critical, production)  BACKUP_RESTRICTED_DUTY → immediate_page
 ```
+
+The suspended Outcome-3 example above (`payments_execution`, critical production) now
+escalates `PAGE_REQUIRED`, not `immediate_page` — production suspension is its own
+explicit page outcome.
 
 ---
 

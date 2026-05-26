@@ -93,11 +93,14 @@ Criticality controls paging urgency only (`critical→immediate_page`,
 `material→urgent_notification`, `low_risk→log_and_queue_owner_notice`) — never whether the
 event opens.
 
-**Suspension paging floor (owner ruling):** any **production** lane entering
-`OPERATIONS_SUSPENDED` pages at **minimum severity** (`urgent_notification`) regardless of
-its ordinary tier. **Exemption:** lanes explicitly tagged non-production
-(`environment: sandbox|test|non_production|dev|staging`, or `non_production: true`) may
-**log** rather than page when suspended.
+**Suspension paging — `PAGE_REQUIRED` (owner doctrine):** any **production** lane entering
+`OPERATIONS_SUSPENDED` sets `escalation_urgency = PAGE_REQUIRED` — an explicit, active human
+page to the owner / on-call authority, **regardless of role tier**. A suspended production
+lane means the starter is unavailable, no eligible tested backup exists, no permitted safe
+human continuation path exists, and the operation is halted because proceeding is unsafe —
+that is always worth a page, never quiet handling. **Exemption:** lanes explicitly tagged
+non-production (`environment: sandbox|test|non_production|dev|staging`, or
+`non_production: true`) may follow ordinary tier policy when suspended.
 
 **Health observation vs continuity action (no substitution without authorization):**
 - `MONITOR` (from an `OBSERVE` health verdict) and `NO_CONTINUITY_EVENT` are **health

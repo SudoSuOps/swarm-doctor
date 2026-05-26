@@ -74,6 +74,7 @@
   "continuity_action": {
     "position_group": "customer_support",
     "criticality_tier": "material",
+    "environment": "production",
     "starter": "support-01.helpdesk.defendable.eth",
     "human_owner": "support_manager",
     "triggered": true,
@@ -103,6 +104,6 @@
       "coverage by backup agent \u2014 restricted duty, never starter authority"
     ]
   },
-  "timestamp": "2026-05-26T12:58:35.159876+00:00",
-  "receipt_sha256": "8e552c8fdb6c4067101e12da27344d2ab0a60d395cff8320df982632a1f4daf2"
+  "timestamp": "2026-05-26T13:15:04.557599+00:00",
+  "receipt_sha256": "9f562289932762ba96d3ad8fd3f725fe11b4a85f6f84cd84971c36c9b672ac53"
 }

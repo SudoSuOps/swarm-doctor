@@ -133,10 +133,11 @@ This set is exhaustive and enforced in code + CI (`examples/sheets/dead_with_bac
 (`critical→immediate_page`, `material→urgent_notification`, `low_risk→log_and_queue_owner_notice`),
 never whether an event opens.
 
-**Suspension paging floor (owner ruling):** a **production** lane entering
-`OPERATIONS_SUSPENDED` pages at minimum severity (`urgent_notification`) regardless of tier.
-Lanes explicitly tagged non-production (`environment: sandbox|test|non_production|dev|staging`,
-or `non_production: true`) may log instead.
+**Suspension paging — `PAGE_REQUIRED` (owner doctrine):** a **production** lane entering
+`OPERATIONS_SUSPENDED` sets `escalation_urgency = PAGE_REQUIRED` (explicit active human page)
+regardless of tier. Lanes explicitly tagged non-production
+(`environment: sandbox|test|non_production|dev|staging`, or `non_production: true`) follow
+ordinary tier policy instead.
 
 **Health observation ≠ continuity action:** `MONITOR` (from an `OBSERVE` verdict) and
 `NO_CONTINUITY_EVENT` are health-observation outcomes (`triggered: false`) and never

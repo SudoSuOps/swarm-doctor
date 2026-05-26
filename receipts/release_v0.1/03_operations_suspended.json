@@ -88,15 +88,15 @@
       "all lane actions (suspended)"
     ],
     "human_owner_notified": true,
-    "escalation_urgency": "immediate_page",
+    "escalation_urgency": "PAGE_REQUIRED",
     "receipts_preserved": true,
     "limitations": [
       "OPERATIONS SUSPENDED \u2014 all agent actions blocked pending human control",
       "reason: lane has no safe degraded mode (actions are not reversible / holdable)",
-      "production suspension \u2014 paged at minimum severity per owner ruling",
+      "PRODUCTION suspension \u2014 active human page REQUIRED (owner doctrine), regardless of role tier",
       "receipts preserved; no work proceeds until a human assumes control or a backup is cleared"
     ]
   },
-  "timestamp": "2026-05-26T13:05:55.644231+00:00",
-  "receipt_sha256": "65817f918052a8c42f889e7176a85aa76b13a01750bf86acddb3bcc053238d99"
+  "timestamp": "2026-05-26T13:15:04.478351+00:00",
+  "receipt_sha256": "f3a9ab0db784bb3ac051a9671b172af4e6b264991a41128e80f3dfe3283e5632"
 }

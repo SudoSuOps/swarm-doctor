@@ -147,7 +147,8 @@
         "human_owner_notified": { "type": "boolean" },
         "escalation_urgency": {
           "type": "string",
-          "enum": ["none", "log_and_queue_owner_notice", "urgent_notification", "immediate_page"]
+          "description": "PAGE_REQUIRED is the explicit active-page outcome mandated for production OPERATIONS_SUSPENDED.",
+          "enum": ["none", "log_and_queue_owner_notice", "urgent_notification", "immediate_page", "PAGE_REQUIRED"]
         },
         "limitations": { "type": "array", "items": { "type": "string" } }
       }

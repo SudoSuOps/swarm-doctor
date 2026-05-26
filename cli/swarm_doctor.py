@@ -107,14 +107,11 @@ TIER_URGENCY = {
     "material": "urgent_notification",
     "low_risk": "log_and_queue_owner_notice",
 }
-URGENCY_ORDER = ["none", "log_and_queue_owner_notice", "urgent_notification", "immediate_page"]
-SUSPEND_PAGE_FLOOR = "urgent_notification"  # owner ruling: a SUSPENDED production lane must page
-# Positions explicitly tagged as one of these may LOG instead of page when suspended.
+# Owner doctrine: a PRODUCTION lane entering OPERATIONS_SUSPENDED must ACTIVELY PAGE a human
+# owner / on-call authority — an explicit, unambiguous escalation, regardless of role tier.
+URG_PAGE_REQUIRED = "PAGE_REQUIRED"
+# Positions explicitly tagged as one of these may follow ordinary tier policy when suspended.
 NON_PRODUCTION_ENVS = {"sandbox", "test", "non_production", "dev", "staging"}
-
-
-def _at_least(urgency, floor):
-    return urgency if URGENCY_ORDER.index(urgency) >= URGENCY_ORDER.index(floor) else floor
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -463,6 +460,10 @@ def validate_depth_chart(path):
     tier = dc.get("criticality_tier")
     if tier and tier not in valid_tiers:
         errors.append(f"criticality_tier '{tier}' not in {sorted(valid_tiers)}")
+    env = str(dc.get("environment", "production")).lower()
+    if env != "production" and env not in NON_PRODUCTION_ENVS:
+        errors.append(f"environment '{env}' not in {sorted({'production'} | NON_PRODUCTION_ENVS)}")
+    is_production = not (dc.get("non_production") or env in NON_PRODUCTION_ENVS)
     roster = dc.get("roster", [])
     starters = [m for m in roster if m.get("depth_chart") == "starter"]
     if len(starters) != 1:
@@ -485,7 +486,8 @@ def validate_depth_chart(path):
     has_human = bool(dc.get("human_failover_owner") or dc.get("human_coach"))
     safe = dc.get("safe_mode_available", True)
     if eligible_backups == 0 and not (has_human and safe):
-        warns.append("no eligible backup AND no safe human coverage → a starter failure here will OPERATIONS_SUSPENDED")
+        tail = "PAGE_REQUIRED (production)" if is_production else "ordinary tier policy (non-production)"
+        warns.append(f"no eligible backup AND no safe human coverage → a starter failure here will OPERATIONS_SUSPENDED, escalation {tail}")
 
     for e in errors:
         print(f"  [ERROR] {e}")
@@ -582,10 +584,12 @@ def build_continuity_action(receipt, dc):
                 "human_owner_notified": True, "escalation_urgency": urgency, "limitations": limits}
 
     if human_owner and human_available and safe_mode:  # HUMAN_FAILOVER_SAFE_MODE — lane safe-mode only
+        # Follows ordinary tier policy unless the playbook marks this lane page-required.
+        human_urgency = URG_PAGE_REQUIRED if dc.get("human_failover_page_required") else urgency
         return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
                 "outcome": OUT_HUMAN, "workflow_status": "COVERED_BY_HUMAN_SAFE_MODE", "activated": None,
                 "activated_permissions": [], "requires_human_approval": ["all lane actions"],
-                "human_owner_notified": True, "escalation_urgency": urgency,
+                "human_owner_notified": True, "escalation_urgency": human_urgency,
                 "limitations": ["no eligible backup — lane runs in safe mode only (draft / read-only / queue-and-hold)",
                                 f"human owner ({human_owner}) covers / authorizes until a backup is cleared"]}
 
@@ -595,18 +599,21 @@ def build_continuity_action(receipt, dc):
         why.append("no available human failover owner")
     if not safe_mode:
         why.append("lane has no safe degraded mode (actions are not reversible / holdable)")
-    # Owner ruling: a SUSPENDED production lane pages at minimum severity, regardless of tier.
-    # Exemption: explicitly tagged sandbox/test/non-production lanes may log instead.
-    suspend_urgency = _at_least(urgency, SUSPEND_PAGE_FLOOR) if is_production else urgency
-    floor_note = ("production suspension — paged at minimum severity per owner ruling"
-                  if is_production else f"non-production ({env}) — exempt from the suspension paging floor; logged")
+    # OWNER DOCTRINE: a SUSPENDED PRODUCTION lane ALWAYS pages a human — escalation = PAGE_REQUIRED,
+    # regardless of role tier. Exemption: non-production lanes follow ordinary tier policy.
+    if is_production:
+        suspend_urgency = URG_PAGE_REQUIRED
+        page_note = "PRODUCTION suspension — active human page REQUIRED (owner doctrine), regardless of role tier"
+    else:
+        suspend_urgency = urgency
+        page_note = f"non-production ({env}) — exempt; ordinary tier policy applies ({urgency})"
     return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
             "outcome": OUT_SUSPEND, "workflow_status": "SUSPENDED", "activated": None,
             "activated_permissions": [], "requires_human_approval": ["all lane actions (suspended)"],
             "human_owner_notified": True, "escalation_urgency": suspend_urgency, "receipts_preserved": True,
             "limitations": ["OPERATIONS SUSPENDED — all agent actions blocked pending human control",
                             "reason: " + "; ".join(why),
-                            floor_note,
+                            page_note,
                             "receipts preserved; no work proceeds until a human assumes control or a backup is cleared"]}
 
 
