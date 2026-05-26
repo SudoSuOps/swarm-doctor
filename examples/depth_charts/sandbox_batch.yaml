@@ -1,0 +1,13 @@
+# Explicitly tagged sandbox lane: exempt from the suspension paging floor. Logs, not pages.
+position_group: sandbox_batch
+criticality_tier: low_risk
+environment: sandbox
+human_coach: batch_owner
+human_failover_owner: batch_owner
+safe_mode_available: false
+conditioning_max_age_days: 36500
+roster:
+  - agent_id: sbx-01.client.defendable.eth
+    depth_chart: starter
+    last_conditioning: "2026-05-24"
+    permissions: {may: [run_batch], may_not_without_human_approval: []}

@@ -99,7 +99,12 @@ receipt as `continuity_action`. The event **resolves to exactly one of three out
 3. **`OPERATIONS_SUSPENDED`** — *fail-closed*: nothing can safely cover → stop the line, preserve receipts, escalate.
 
 Criticality controls paging urgency only: `critical→immediate_page`, `material→urgent_notification`,
-`low_risk→log_and_queue_owner_notice` — never *whether* the event opens.
+`low_risk→log_and_queue_owner_notice` — never *whether* the event opens. **Suspension floor:**
+a **production** lane that hits `OPERATIONS_SUSPENDED` pages at minimum `urgent_notification`
+regardless of tier; lanes tagged `environment: sandbox|test|non_production` may log instead.
+
+`MONITOR` (from an `OBSERVE` health verdict) is a health-observation outcome, **not** a
+continuity action — it never activates substitution.
 
 Validate a depth chart before using it: `python3 cli/swarm_doctor.py --validate-depth-chart <path>`.
 

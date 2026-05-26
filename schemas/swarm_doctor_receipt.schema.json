@@ -118,6 +118,7 @@
         "trigger_reason": { "type": ["string", "null"] },
         "position_group": { "type": "string" },
         "criticality_tier": { "type": "string", "enum": ["critical", "material", "low_risk"] },
+        "environment": { "type": "string" },
         "starter": { "type": "string" },
         "starter_status": { "type": "string", "enum": ["ACTIVE", "OBSERVE", "INJURED_RESERVE"] },
         "outcome": {

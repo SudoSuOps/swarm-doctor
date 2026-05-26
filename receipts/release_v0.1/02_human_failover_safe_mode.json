@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.1",
+  "offline_mode": true,
+  "offline_note": "Local triage only. Source data never leaves the office.",
+  "agent_id": "compliance-01.client.defendable.eth",
+  "agent_ens": "compliance-01.client.defendable.eth",
+  "agent_name": "Compliance Starter",
+  "host": "defendableos-baremetal-03",
+  "symptom": "crash loop on startup",
+  "vitals_status": "crash_loop",
+  "vitals_probe": null,
+  "pulse_status": "flatline",
+  "bloodwork_findings": [],
+  "neuro_findings": [],
+  "recent_changes": [
+    "dependency bump"
+  ],
+  "last_known_good": null,
+  "metrics": {
+    "heartbeat_success_rate": 0.0,
+    "error_rate": 1.0,
+    "successful_probe_count": 0,
+    "consecutive_failures": 6,
+    "latency_ms": 0.0,
+    "gpu_memory_used_pct": 0.0,
+    "context_tokens_pct": 0.0,
+    "stability_score": 34.0
+  },
+  "findings": [
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "vitals: agent is crash_loop"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "vitals: crash_count 6 > max 0"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: consecutive_failures 6 > max 2"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: successful_probe_count 0 < min 3"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: heartbeat_success_rate 0.00 < min 0.95"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "bloodwork: error_rate 1.00 > max 0.05"
+    }
+  ],
+  "hard_faults": [
+    "vitals: agent is crash_loop",
+    "vitals: crash_count 6 > max 0",
+    "pulse: consecutive_failures 6 > max 2",
+    "pulse: successful_probe_count 0 < min 3",
+    "pulse: heartbeat_success_rate 0.00 < min 0.95",
+    "bloodwork: error_rate 1.00 > max 0.05"
+  ],
+  "soft_warnings": [],
+  "root_cause_category": "infra",
+  "diagnosis": "Hard fault present: vitals: agent is crash_loop",
+  "diagnosis_confidence": 0.9,
+  "treatment_plan": [
+    "Stop the restart loop; inspect crash logs; roll back last change."
+  ],
+  "time_to_recovery_minutes": 10,
+  "human_required": false,
+  "discharge_status": "TREATMENT_REQUIRED",
+  "ready_for_eval_curator": false,
+  "continuity_action": {
+    "position_group": "compliance_review",
+    "criticality_tier": "critical",
+    "environment": "production",
+    "starter": "compliance-01.client.defendable.eth",
+    "human_owner": "compliance_officer",
+    "triggered": true,
+    "trigger_reason": "vitals: agent is crash_loop",
+    "starter_status": "INJURED_RESERVE",
+    "outcome": "HUMAN_FAILOVER_SAFE_MODE",
+    "workflow_status": "COVERED_BY_HUMAN_SAFE_MODE",
+    "activated": null,
+    "activated_permissions": [],
+    "requires_human_approval": [
+      "all lane actions"
+    ],
+    "human_owner_notified": true,
+    "escalation_urgency": "immediate_page",
+    "limitations": [
+      "no eligible backup \u2014 lane runs in safe mode only (draft / read-only / queue-and-hold)",
+      "human owner (compliance_officer) covers / authorizes until a backup is cleared"
+    ]
+  },
+  "timestamp": "2026-05-26T13:05:55.580200+00:00",
+  "receipt_sha256": "6991e5c4a75aaf54d87af24f2c5edfbf9a3742ad4a60c6485e12d56d05b16351"
+}

@@ -1,0 +1,15 @@
+# Low-risk PRODUCTION batch lane with no safe mode and no eligible backup.
+# Normally low_risk would only log — but the owner ruling floors a SUSPENDED production
+# lane to page at minimum severity (urgent_notification).
+position_group: nightly_batch
+criticality_tier: low_risk
+environment: production
+human_coach: batch_owner
+human_failover_owner: batch_owner
+safe_mode_available: false
+conditioning_max_age_days: 36500
+roster:
+  - agent_id: batch-01.client.defendable.eth
+    depth_chart: starter
+    last_conditioning: "2026-05-24"
+    permissions: {may: [run_batch], may_not_without_human_approval: []}

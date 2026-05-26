@@ -91,7 +91,23 @@ authority**. With a depth chart, the event resolves to exactly one outcome:
 
 Criticality controls paging urgency only (`critical→immediate_page`,
 `material→urgent_notification`, `low_risk→log_and_queue_owner_notice`) — never whether the
-event opens. Continuity rides *alongside* the Doctor's verdict; it never grades quality.
+event opens.
+
+**Suspension paging floor (owner ruling):** any **production** lane entering
+`OPERATIONS_SUSPENDED` pages at **minimum severity** (`urgent_notification`) regardless of
+its ordinary tier. **Exemption:** lanes explicitly tagged non-production
+(`environment: sandbox|test|non_production|dev|staging`, or `non_production: true`) may
+**log** rather than page when suspended.
+
+**Health observation vs continuity action (no substitution without authorization):**
+- `MONITOR` (from an `OBSERVE` health verdict) and `NO_CONTINUITY_EVENT` are **health
+  observation outcomes** — `triggered: false`. They **do not activate substitution.**
+- `BACKUP_RESTRICTED_DUTY`, `HUMAN_FAILOVER_SAFE_MODE`, `OPERATIONS_SUSPENDED` are the
+  **continuity actions** — `triggered: true`.
+- An `OBSERVE`/`MONITOR` result never moves the starter off the field or activates a backup
+  unless a future flight-sheet rule explicitly authorizes restricted duty.
+
+Continuity rides *alongside* the Doctor's verdict; it never grades quality.
 See [`PLAYBOOK.md`](PLAYBOOK.md) §9 and [`examples/continuity_next_man_up.md`](examples/continuity_next_man_up.md).
 
 ## Where this fits in DefendableOS

@@ -107,6 +107,14 @@ TIER_URGENCY = {
     "material": "urgent_notification",
     "low_risk": "log_and_queue_owner_notice",
 }
+URGENCY_ORDER = ["none", "log_and_queue_owner_notice", "urgent_notification", "immediate_page"]
+SUSPEND_PAGE_FLOOR = "urgent_notification"  # owner ruling: a SUSPENDED production lane must page
+# Positions explicitly tagged as one of these may LOG instead of page when suspended.
+NON_PRODUCTION_ENVS = {"sandbox", "test", "non_production", "dev", "staging"}
+
+
+def _at_least(urgency, floor):
+    return urgency if URGENCY_ORDER.index(urgency) >= URGENCY_ORDER.index(floor) else floor
 
 
 # ----------------------------------------------------------------------------- helpers
@@ -532,14 +540,16 @@ def build_continuity_action(receipt, dc):
     group = dc["position_group"]
     tier = dc.get("criticality_tier", "material")
     urgency = TIER_URGENCY.get(tier, "urgent_notification")
+    env = str(dc.get("environment", "production")).lower()
+    is_production = not (dc.get("non_production") or env in NON_PRODUCTION_ENVS)
     human_owner = dc.get("human_failover_owner") or dc.get("human_coach")
     human_available = dc.get("human_failover_available", bool(human_owner))
     safe_mode = dc.get("safe_mode_available", True)  # can the lane run in a reduced safe mode?
     starter = next((m["agent_id"] for m in dc.get("roster", []) if m.get("depth_chart") == "starter"),
                    receipt["agent_id"])
 
-    base = {"position_group": group, "criticality_tier": tier, "starter": starter,
-            "human_owner": human_owner}
+    base = {"position_group": group, "criticality_tier": tier, "environment": env,
+            "starter": starter, "human_owner": human_owner}
 
     if discharge == "DISCHARGE_TO_EVAL_CURATOR":
         return {**base, "triggered": False, "trigger_reason": None, "starter_status": "ACTIVE",
@@ -585,12 +595,18 @@ def build_continuity_action(receipt, dc):
         why.append("no available human failover owner")
     if not safe_mode:
         why.append("lane has no safe degraded mode (actions are not reversible / holdable)")
+    # Owner ruling: a SUSPENDED production lane pages at minimum severity, regardless of tier.
+    # Exemption: explicitly tagged sandbox/test/non-production lanes may log instead.
+    suspend_urgency = _at_least(urgency, SUSPEND_PAGE_FLOOR) if is_production else urgency
+    floor_note = ("production suspension — paged at minimum severity per owner ruling"
+                  if is_production else f"non-production ({env}) — exempt from the suspension paging floor; logged")
     return {**base, "triggered": True, "trigger_reason": reason, "starter_status": "INJURED_RESERVE",
             "outcome": OUT_SUSPEND, "workflow_status": "SUSPENDED", "activated": None,
             "activated_permissions": [], "requires_human_approval": ["all lane actions (suspended)"],
-            "human_owner_notified": True, "escalation_urgency": urgency, "receipts_preserved": True,
+            "human_owner_notified": True, "escalation_urgency": suspend_urgency, "receipts_preserved": True,
             "limitations": ["OPERATIONS SUSPENDED — all agent actions blocked pending human control",
                             "reason: " + "; ".join(why),
+                            floor_note,
                             "receipts preserved; no work proceeds until a human assumes control or a backup is cleared"]}
 
 
@@ -708,12 +724,17 @@ def selftest(examples_dir):
         got = r["discharge_status"]
         passed = (expected is None) or (got == expected)
         extra = ""
+        ca = r.get("continuity_action") or {}
         exp_out = sheet.get("expect_outcome")
         if exp_out:
-            got_out = (r.get("continuity_action") or {}).get("outcome")
-            out_ok = got_out == exp_out
-            passed = passed and out_ok
-            extra = f"  outcome={got_out} (expect {exp_out})"
+            got_out = ca.get("outcome")
+            passed = passed and (got_out == exp_out)
+            extra += f"  outcome={got_out} (expect {exp_out})"
+        exp_urg = sheet.get("expect_urgency")
+        if exp_urg:
+            got_urg = ca.get("escalation_urgency")
+            passed = passed and (got_urg == exp_urg)
+            extra += f"  urgency={got_urg} (expect {exp_urg})"
         ok = ok and passed
         flag = "ok " if passed else "FAIL"
         print(f"  [{flag}] {name:24s} got={got:26s} expect={expected}{extra}")

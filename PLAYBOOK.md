@@ -169,5 +169,19 @@ exactly one outcome, written into the receipt's `continuity_action`:
 `critical → immediate_page`, `material → urgent_notification`,
 `low_risk → log_and_queue_owner_notice`.
 
+**Suspension paging floor (owner ruling).** A **production** lane that hits
+`OPERATIONS_SUSPENDED` pages at minimum `urgent_notification`, regardless of tier — a
+suspended production position is always worth a page. **Exemption:** lanes explicitly tagged
+non-production (`environment: sandbox|test|non_production|dev|staging`, or
+`non_production: true`) may log instead. Proven in CI by `dead_suspend_prod_lowrisk`
+(low_risk prod → `urgent_notification`) and `dead_suspend_sandbox` (low_risk sandbox →
+`log_and_queue_owner_notice`).
+
+**Health observation ≠ continuity action.** A `MONITOR` outcome comes from an `OBSERVE`
+health verdict and is **not** a continuity action — `triggered: false`, no substitution.
+Only `BACKUP_RESTRICTED_DUTY` / `HUMAN_FAILOVER_SAFE_MODE` / `OPERATIONS_SUSPENDED` move the
+starter off the field. An `OBSERVE`/`MONITOR` result does not activate restricted duty
+unless a future flight-sheet rule explicitly authorizes it.
+
 Continuity rides *alongside* the health verdict — it does not change the discharge or grade
 quality. Worked example: [`examples/continuity_next_man_up.md`](examples/continuity_next_man_up.md).

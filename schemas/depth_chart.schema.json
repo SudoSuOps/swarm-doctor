@@ -7,6 +7,12 @@
   "properties": {
     "position_group": { "type": "string" },
     "criticality_tier": { "type": "string", "enum": ["critical", "material", "low_risk"] },
+    "environment": {
+      "type": "string",
+      "description": "production lanes page at minimum severity when SUSPENDED; sandbox/test/non_production/dev/staging may log instead.",
+      "enum": ["production", "sandbox", "test", "non_production", "dev", "staging"]
+    },
+    "non_production": { "type": "boolean", "description": "alias: true exempts the lane from the suspension paging floor" },
     "human_coach": { "type": "string" },
     "human_failover_owner": { "type": "string" },
     "human_failover_available": { "type": "boolean", "description": "Can the human owner actually cover? Defaults true when an owner is set." },

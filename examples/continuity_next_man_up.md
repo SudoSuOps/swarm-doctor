@@ -85,6 +85,16 @@ false` — "move money" has no draft/read-only version. **Fail-closed: stop the 
     limit    : receipts preserved; no work proceeds until a human assumes control or a backup is cleared
 ```
 
+### Suspension paging floor + sandbox exemption
+
+`OPERATIONS_SUSPENDED` on a **production** lane pages at minimum `urgent_notification`
+regardless of tier (owner ruling). A lane tagged non-production may log instead:
+
+```
+dead_suspend_prod_lowrisk  (low_risk, environment: production) → urgency urgent_notification   (floored)
+dead_suspend_sandbox       (low_risk, environment: sandbox)    → urgency log_and_queue_owner_notice  (exempt)
+```
+
 ---
 
 ## What this proves

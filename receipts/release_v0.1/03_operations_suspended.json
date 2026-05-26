@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.1",
+  "offline_mode": true,
+  "offline_note": "Local triage only. Source data never leaves the office.",
+  "agent_id": "payments-01.client.defendable.eth",
+  "agent_ens": "payments-01.client.defendable.eth",
+  "agent_name": "Payments Executor",
+  "host": "defendableos-baremetal-04",
+  "symptom": "executor dead mid-run",
+  "vitals_status": "dead",
+  "vitals_probe": null,
+  "pulse_status": "flatline",
+  "bloodwork_findings": [],
+  "neuro_findings": [],
+  "recent_changes": [
+    "deploy 10:00"
+  ],
+  "last_known_good": null,
+  "metrics": {
+    "heartbeat_success_rate": 0.0,
+    "error_rate": 1.0,
+    "successful_probe_count": 0,
+    "consecutive_failures": 5,
+    "latency_ms": 0.0,
+    "gpu_memory_used_pct": 0.0,
+    "context_tokens_pct": 0.0,
+    "stability_score": 34.0
+  },
+  "findings": [
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "vitals: agent is dead"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: consecutive_failures 5 > max 2"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: successful_probe_count 0 < min 3"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "pulse: heartbeat_success_rate 0.00 < min 0.95"
+    },
+    {
+      "severity": "HARD_FAULT",
+      "category": "infra",
+      "message": "bloodwork: error_rate 1.00 > max 0.05"
+    }
+  ],
+  "hard_faults": [
+    "vitals: agent is dead",
+    "pulse: consecutive_failures 5 > max 2",
+    "pulse: successful_probe_count 0 < min 3",
+    "pulse: heartbeat_success_rate 0.00 < min 0.95",
+    "bloodwork: error_rate 1.00 > max 0.05"
+  ],
+  "soft_warnings": [],
+  "root_cause_category": "infra",
+  "diagnosis": "Hard fault present: vitals: agent is dead",
+  "diagnosis_confidence": 0.9,
+  "treatment_plan": [
+    "Restart the service and confirm it stays up."
+  ],
+  "time_to_recovery_minutes": 10,
+  "human_required": false,
+  "discharge_status": "TREATMENT_REQUIRED",
+  "ready_for_eval_curator": false,
+  "continuity_action": {
+    "position_group": "payments_execution",
+    "criticality_tier": "critical",
+    "environment": "production",
+    "starter": "payments-01.client.defendable.eth",
+    "human_owner": "treasury_controller",
+    "triggered": true,
+    "trigger_reason": "vitals: agent is dead",
+    "starter_status": "INJURED_RESERVE",
+    "outcome": "OPERATIONS_SUSPENDED",
+    "workflow_status": "SUSPENDED",
+    "activated": null,
+    "activated_permissions": [],
+    "requires_human_approval": [
+      "all lane actions (suspended)"
+    ],
+    "human_owner_notified": true,
+    "escalation_urgency": "immediate_page",
+    "receipts_preserved": true,
+    "limitations": [
+      "OPERATIONS SUSPENDED \u2014 all agent actions blocked pending human control",
+      "reason: lane has no safe degraded mode (actions are not reversible / holdable)",
+      "production suspension \u2014 paged at minimum severity per owner ruling",
+      "receipts preserved; no work proceeds until a human assumes control or a backup is cleared"
+    ]
+  },
+  "timestamp": "2026-05-26T13:05:55.644231+00:00",
+  "receipt_sha256": "65817f918052a8c42f889e7176a85aa76b13a01750bf86acddb3bcc053238d99"
+}
