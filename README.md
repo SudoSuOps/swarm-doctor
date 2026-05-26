@@ -138,3 +138,14 @@ the observations; change the standard → change the thresholds.
 When `ready_for_eval_curator: true`, the receipt is the green light. eval-curator reads
 `agent_id`, confirms `discharge_status == DISCHARGE_TO_EVAL_CURATOR`, and only then
 begins grading. See "Discharge handoff" in [`PLAYBOOK.md`](PLAYBOOK.md).
+
+## Related DefendableOS Modules
+
+DefendableOS is built as a chain of single-purpose modules:
+
+- **Swarm-Doctor** — triage and continuity evidence for failed or unhealthy agents. <https://github.com/SudoSuOps/swarm-doctor>
+- **Conditioning Coach** — advisory preventive readiness and drift review. <https://github.com/SudoSuOps/conditioning-coach>
+- **Owner Roster Registry** — records validated evidence and owner-approved roster state. <https://github.com/SudoSuOps/owner-roster-registry>
+- **Permission Broker** — locally enforces broker-routed action permissions against mock support tools only. <https://github.com/SudoSuOps/permission-broker>
+
+**Validation status:** Builder-produced public prototype. Independent Tribunal code audit and cross-module behavioral validation are pending. No production deployment, external SaaS restriction, live permission revocation, blockchain/ENS implementation, insurance coverage, or certification is claimed.
