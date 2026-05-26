@@ -7,10 +7,11 @@ the rules at the bottom.
 > Never grade answer quality. Health only. Doctor before manager.
 
 ## Admit
-- [ ] agent_id: ______________________
+- [ ] agent_id (or ENS, e.g. agent01.client.defendable.eth): ______________________
 - [ ] agent_name: ____________________
 - [ ] host: __________________________
 - [ ] symptom (what was seen): _______________________________________
+- [ ] last_known_good (recovery target): _____________________________
 
 ## 1. Vitals  (circle one)
 - [ ] Process running?  `ps` / `systemctl status` / `docker ps` / `pm2 list`
@@ -27,11 +28,13 @@ the rules at the bottom.
 > no token returned / heartbeat rate too low → **hung confirmed, hard fault**.
 
 ## 3. Bloodwork  (check any present)
-- [ ] oom
-- [ ] cuda_error
-- [ ] context_blowout
-- [ ] template_corruption
-- [ ] tool_call_failure
+- [ ] oom              (→ infra)
+- [ ] cuda_error       (→ infra)
+- [ ] context_blowout  (→ context)
+- [ ] template_corruption (→ prompt)
+- [ ] tool_call_failure   (→ tool_call)
+- [ ] auth_error          (→ auth)
+- [ ] retrieval_failure   (→ retrieval)
 - [ ] errors: ___ / total_checks ___   → error_rate = ____
 - [ ] GPU: used_vram ______ / total_vram ______
 - [ ] context: used_tokens ______ / max_tokens ______
@@ -51,6 +54,9 @@ the rules at the bottom.
 - [ ] prime suspect (most recent change): _______________________________
 
 ## 6. Dx (one line): ___________________________________________________
+- [ ] root_cause_category (circle): infra / model / retrieval / tool_call / prompt / context / network / auth / unknown
+- [ ] diagnosis_confidence (0.0–1.0): ______
+- [ ] human_required?  Y / N      est. time_to_recovery (min): ______
 
 ## 7. Tx (actions): ___________________________________________________
 

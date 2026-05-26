@@ -8,10 +8,23 @@
 # unless you are deliberately changing the standard.
 
 agent:
-  agent_id: ao-helpdesk-01
+  agent_id: agent01.helpdesk.defendable.eth   # ENS form supported; plain ids ok too
+  agent_ens: agent01.helpdesk.defendable.eth   # optional explicit ENS (mirrors agent_id)
   agent_name: AO Help-Desk Support Agent
   host: defendableos-baremetal-02
   symptom: "stopped replying to tickets around 08:10"
+  # Optional: run ONE real vitals probe instead of trusting observations.vitals_state.
+  # probe: "docker:swarmcore-postgres"     # or "systemctl:my-agent.service"
+  # Reference point for "is this back to normal?" — carried into the receipt.
+  last_known_good:
+    timestamp: "2026-05-25T22:00:00Z"
+    model: Atlas-Qwen-27B
+    adapter: helpdesk-v3
+    deploy: "deploy 2026-05-25 22:00 (green)"
+
+# Offline by default: local flight sheet + local probes only. No network, no cloud.
+mode:
+  offline: true   # source data never leaves the office
 
 # --- Pass/fail standards -----------------------------------------------------
 thresholds:
@@ -54,7 +67,8 @@ observations:
   total_checks: 20
   errors: 0
   bloodwork_flags: []             # any of: oom, cuda_error, context_blowout,
-                                  #         template_corruption, tool_call_failure
+                                  #         template_corruption, tool_call_failure,
+                                  #         auth_error, retrieval_failure
   gpu:
     used_vram_mb: 16000
     total_vram_mb: 24000

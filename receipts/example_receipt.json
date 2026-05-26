@@ -1,14 +1,24 @@
 {
-  "schema_version": "1.0",
-  "agent_id": "ao-helpdesk-01",
+  "schema_version": "1.1",
+  "offline_mode": true,
+  "offline_note": "Local triage only. Source data never leaves the office.",
+  "agent_id": "agent01.helpdesk.defendable.eth",
+  "agent_ens": "agent01.helpdesk.defendable.eth",
   "agent_name": "AO Help-Desk Support Agent",
   "host": "defendableos-baremetal-02",
   "symptom": "stopped replying to tickets around 08:10",
   "vitals_status": "alive",
+  "vitals_probe": null,
   "pulse_status": "ok",
   "bloodwork_findings": [],
   "neuro_findings": [],
   "recent_changes": [],
+  "last_known_good": {
+    "timestamp": "2026-05-25T22:00:00Z",
+    "model": "Atlas-Qwen-27B",
+    "adapter": "helpdesk-v3",
+    "deploy": "deploy 2026-05-25 22:00 (green)"
+  },
   "metrics": {
     "heartbeat_success_rate": 1.0,
     "error_rate": 0.0,
@@ -19,13 +29,19 @@
     "context_tokens_pct": 0.390625,
     "stability_score": 100.0
   },
+  "findings": [],
   "hard_faults": [],
   "soft_warnings": [],
+  "root_cause_category": "none",
   "diagnosis": "Agent healthy across vitals, pulse, bloodwork, and neuro. Stable.",
+  "diagnosis_confidence": 0.95,
   "treatment_plan": [
     "No treatment needed. Stable."
   ],
+  "time_to_recovery_minutes": 0,
+  "human_required": false,
   "discharge_status": "DISCHARGE_TO_EVAL_CURATOR",
   "ready_for_eval_curator": true,
-  "timestamp": "2026-05-26T11:40:22.422297+00:00"
+  "timestamp": "2026-05-26T11:55:32.160118+00:00",
+  "receipt_sha256": "3fe495d99d69821897291f95cba06d41e39c7f4f6f221cae413a7d70a57ea4d6"
 }

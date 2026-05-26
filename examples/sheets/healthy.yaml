@@ -1,0 +1,22 @@
+expect: DISCHARGE_TO_EVAL_CURATOR
+agent: {agent_id: agent01.helpdesk.defendable.eth, agent_name: AO Help-Desk Support Agent, host: defendableos-baremetal-02, symptom: "routine check"}
+thresholds: {max_latency_ms: 8000, max_crash_count: 0, max_error_rate: 0.05, min_heartbeat_success_rate: 0.95, min_successful_probe_count: 3, max_consecutive_failures: 2, max_gpu_memory_used_pct: 0.90, max_context_tokens_pct: 0.90}
+weights: {vitals: 0.30, pulse: 0.25, bloodwork: 0.20, neuro: 0.15, history: 0.10}
+observations:
+  vitals_state: alive
+  process_up: true
+  crash_count: 0
+  consecutive_failures: 0
+  total_heartbeats: 20
+  successful_heartbeats: 20
+  total_probes: 5
+  successful_probes: 5
+  latency_ms: 1400
+  last_response_age_s: 6
+  total_checks: 20
+  errors: 0
+  bloodwork_flags: []
+  gpu: {used_vram_mb: 16000, total_vram_mb: 24000}
+  context: {used_context_tokens: 3200, max_context_tokens: 8192}
+  neuro: {expected_model: Atlas-Qwen-27B, loaded_model: Atlas-Qwen-27B, expected_adapter: helpdesk-v3, loaded_adapter: helpdesk-v3, sampling_sane: true, system_prompt_ok: true}
+  recent_changes: []

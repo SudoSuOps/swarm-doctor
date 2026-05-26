@@ -54,10 +54,30 @@ Every visit ends in exactly one of three:
 
 Only a `DISCHARGE_TO_EVAL_CURATOR` receipt opens the door to the manager.
 
+## Hard fault vs soft warning
+
+Every finding is one of two severities — and the distinction *is* the decision:
+
+- **`HARD_FAULT`** — the agent is broken. Blocks discharge. → `TREATMENT_REQUIRED`.
+- **`SOFT_WARNING`** — alive but degraded (slow, near a ceiling). → `OBSERVE`.
+
+Each finding also carries a **`root_cause_category`**:
+`infra · model · retrieval · tool_call · prompt · context · network · auth · unknown`.
+The dominant category drives the diagnosis, the treatment, and whether a human is needed.
+
 ## Receipts
 
 Every visit produces a JSON receipt (see `schemas/swarm_doctor_receipt.schema.json`).
 The receipt is the chart. It is the audit trail. No discharge without a receipt.
+
+Each receipt also carries: `diagnosis_confidence` (0–1), `time_to_recovery_minutes`,
+`human_required`, `last_known_good` (the recovery target), and a `receipt_sha256` so the
+chart is tamper-evident. Agents may be identified by **ENS** (`agent01.client.defendable.eth`).
+
+## Offline by default
+
+Swarm-Doctor reads a local flight sheet and runs local probes (`systemctl` / `docker`)
+only. No network calls, no cloud, no telemetry. **Source data never leaves the office.**
 
 ## Where this fits in DefendableOS
 

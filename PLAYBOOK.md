@@ -30,6 +30,16 @@ Decide one `vitals_state`: `alive | dead | crash_loop | hung | unreachable`.
 > `dead`, `crash_loop`, `unreachable` → hard fault. Record and go to Dx; you can skip
 > deeper probes until the body is back.
 
+**Real probe (recommended for vitals):** instead of trusting a hand-entered
+`vitals_state`, let the runner read ground truth:
+> ```
+> python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --probe docker:<name>
+> python3 cli/swarm_doctor.py --flight-sheet flight_sheet.yaml --probe systemctl:<unit>
+> ```
+> The probe runs locally (`docker inspect` / `systemctl show`), overrides
+> `vitals_state`/`process_up`/`crash_count`, and records its raw output in the receipt's
+> `vitals_probe` field. No network — source data never leaves the office.
+
 ## 2. Pulse — can it take a request and return a token?
 
 - Fire `min_successful_probe_count` test requests. Count `successful_probes`.
@@ -45,11 +55,13 @@ Decide one `vitals_state`: `alive | dead | crash_loop | hung | unreachable`.
 
 Pull recent logs and flag any of:
 
-- `oom` — out of memory (host RAM or VRAM)
-- `cuda_error` — CUDA / driver / device fault
-- `context_blowout` — request exceeded context window
-- `template_corruption` — broken chat template / prompt formatting
-- `tool_call_failure` — tool/function calls erroring or malformed
+- `oom` — out of memory (host RAM or VRAM)            → category `infra`
+- `cuda_error` — CUDA / driver / device fault          → category `infra`
+- `context_blowout` — request exceeded context window  → category `context`
+- `template_corruption` — broken chat template/prompt   → category `prompt`
+- `tool_call_failure` — tool/function calls erroring     → category `tool_call`
+- `auth_error` — API key / credential / auth failure     → category `auth`
+- `retrieval_failure` — retrieval backend/index failure  → category `retrieval`
 
 Also compute `error_rate = errors / total_checks`.
 
@@ -104,11 +116,18 @@ A clean discharge produces a receipt with:
 
 ```json
 {
-  "agent_id": "...",
+  "agent_id": "agent01.helpdesk.defendable.eth",
+  "agent_ens": "agent01.helpdesk.defendable.eth",
   "discharge_status": "DISCHARGE_TO_EVAL_CURATOR",
   "ready_for_eval_curator": true,
-  "stability_score": 96.0,
-  "timestamp": "..."
+  "root_cause_category": "none",
+  "diagnosis_confidence": 0.95,
+  "human_required": false,
+  "time_to_recovery_minutes": 0,
+  "metrics": { "stability_score": 100.0 },
+  "offline_mode": true,
+  "timestamp": "...",
+  "receipt_sha256": "..."
 }
 ```
 

@@ -1,0 +1,21 @@
+name: swarm-doctor-check
+
+# Tiny CI check: run every example flight sheet through the runner and assert the
+# expected discharge decision. No cloud, no orchestration — just the CLI self-test.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  triage-selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Run Swarm-Doctor self-test over example sheets
+        run: python3 cli/swarm_doctor.py --selftest examples/sheets
